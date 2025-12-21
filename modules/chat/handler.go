@@ -12,18 +12,15 @@ import (
 )
 
 type Handler struct {
-	agent    domain.LLMAgent
 	enqueuer domain.MessageEnqueuer
 	pubsub   domain.PubSub[ChatEvent]
 }
 
 func NewHandler(
-	agent domain.LLMAgent,
 	enqueuer domain.MessageEnqueuer,
 	pubsub domain.PubSub[ChatEvent],
 ) *Handler {
 	return &Handler{
-		agent:    agent,
 		enqueuer: enqueuer,
 		pubsub:   pubsub,
 	}

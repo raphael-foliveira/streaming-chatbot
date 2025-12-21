@@ -33,11 +33,6 @@ type ChatFunctionResultMessage struct {
 	CallID string `json:"call_id"`
 }
 
-type MessagePublisher interface {
-	PublishUserMessage(ctx context.Context, chatName, message string) error
-	PublishAssistantMessage(ctx context.Context, chatName, message string) error
-}
-
 type MessageEnqueuer interface {
 	EnqueueUserMessage(ctx context.Context, chatName, message string) error
 }

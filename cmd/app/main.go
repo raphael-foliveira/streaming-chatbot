@@ -29,7 +29,7 @@ func main() {
 	enqueuer := chat.NewMessageEnqueuer(messagesChannel)
 	publisher := pubsub.NewChannel(map[string][]chan chat.ChatEvent{})
 
-	chatHandler := chat.NewHandler(agent, enqueuer, publisher)
+	chatHandler := chat.NewHandler(enqueuer, publisher)
 	chatHandler.Register(e)
 
 	messagesProcessor := chat.NewMessageProcessor(
