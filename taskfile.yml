@@ -1,0 +1,19 @@
+version: "3"
+
+tasks:
+  build:
+    cmds:
+      - go build -o ./dist/app ./cmd/app
+
+  tailwind:
+    cmds:
+      - npm run tailwind
+
+  templ:
+    cmds:
+      - go tool templ generate
+
+  dev:
+    deps: []
+    cmds:
+      - air

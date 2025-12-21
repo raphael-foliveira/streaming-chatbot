@@ -1,0 +1,8 @@
+**/*_templ.go
+.env*
+.envrc
+tmp
+dist
+assets/css/output.css
+messages.json
+nohup.out

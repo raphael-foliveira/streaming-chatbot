@@ -1,0 +1,19 @@
+{
+  "name": "htmbot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "tailwind:watch": "tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --watch",
+    "tailwind": "tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.18",
+    "daisyui": "^5.5.14",
+    "tailwindcss": "^4.1.18"
+  }
+}
