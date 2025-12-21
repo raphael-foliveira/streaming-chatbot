@@ -21,8 +21,9 @@ func (e *MessageEnqueuer) EnqueueUserMessage(ctx context.Context, chatName, mess
 	case <-ctx.Done():
 		return ctx.Err()
 	case e.ch <- ChatEvent{
-		ChatName: chatName,
-		Message:  domain.ChatMessage{Role: "user", Content: message},
+		ChatName:  chatName,
+		Type:      "message",
+		OfMessage: domain.ChatMessage{Role: "user", Content: message},
 	}:
 		return nil
 	}

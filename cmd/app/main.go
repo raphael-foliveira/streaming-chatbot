@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/raphael-foliveira/htmbot"
 	"github.com/raphael-foliveira/htmbot/modules/agents"
 	"github.com/raphael-foliveira/htmbot/modules/chat"
@@ -17,6 +18,8 @@ func main() {
 	fileHandler := http.FileServer(http.FS(htmbot.Assets))
 
 	e := echo.New()
+
+	e.Use(middleware.LoggerWithConfig(middleware.DefaultLoggerConfig))
 
 	e.GET("/assets/*", echo.WrapHandler(fileHandler))
 

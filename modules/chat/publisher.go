@@ -5,6 +5,8 @@ import (
 )
 
 type ChatEvent struct {
-	ChatName string
-	Message  domain.ChatMessage
+	ChatName  string
+	Type      string
+	OfMessage domain.ChatMessage
+	OfDelta   string
 }

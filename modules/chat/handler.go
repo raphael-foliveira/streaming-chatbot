@@ -70,7 +70,9 @@ func (h *Handler) SendMessage(c echo.Context) error {
 
 	newMessage := domain.ChatMessage{Role: "user", Content: text}
 
-	if err := h.pubsub.Publish(chatName, ChatEvent{ChatName: chatName, Message: newMessage}); err != nil {
+	messagesDb[chatName] = append(messagesDb[chatName], newMessage)
+
+	if err := h.pubsub.Publish(chatName, ChatEvent{ChatName: chatName, OfMessage: newMessage}); err != nil {
 		return fmt.Errorf("failed to publish user message: %w", err)
 	}
 
@@ -78,7 +80,7 @@ func (h *Handler) SendMessage(c echo.Context) error {
 		return fmt.Errorf("failed to enqueue user message: %w", err)
 	}
 
-	return httpx.Render(c, ChatContainer(chatName, append(messagesDb[chatName], newMessage)))
+	return httpx.Render(c, ChatContainer(chatName, messagesDb[chatName]))
 }
 
 func (h *Handler) ListenForMessages(c echo.Context) error {
@@ -107,11 +109,16 @@ func (h *Handler) ListenForMessages(c echo.Context) error {
 
 			templBuffer := bytes.NewBuffer(nil)
 
-			if err := Message(message.Message).Render(
-				c.Request().Context(),
-				templBuffer,
-			); err != nil {
-				return fmt.Errorf("failed to render message: %w", err)
+			switch message.Type {
+			case "delta":
+				templBuffer.WriteString(message.OfDelta)
+			case "message":
+				if err := Message(message.OfMessage).Render(
+					c.Request().Context(),
+					templBuffer,
+				); err != nil {
+					return fmt.Errorf("failed to render message: %w", err)
+				}
 			}
 
 			if err := httpx.WriteEventStream(

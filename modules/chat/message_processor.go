@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
+	"github.com/labstack/gommon/log"
 	"github.com/raphael-foliveira/htmbot/domain"
 )
 
@@ -35,27 +37,39 @@ func (p *MessageProcessor) ProcessUserMessages(ctx context.Context) error {
 			return ctx.Err()
 		case newMessage := <-p.ch:
 			chatMessages := messagesDb[newMessage.ChatName]
-			chatMessages = append(chatMessages, newMessage.Message)
-			messagesDb[newMessage.ChatName] = chatMessages
 
-			response, err := p.agent.GenerateResponse(ctx, chatMessages, []domain.LLMTool{&TestTool{}})
+			deltaBuilder := strings.Builder{}
+
+			response, err := p.agent.StreamResponse(
+				ctx,
+				append(chatMessages, newMessage.OfMessage),
+				[]domain.LLMTool{&TestTool{}},
+				func(delta string) {
+					deltaBuilder.WriteString(delta)
+					if err := p.publisher.Publish(newMessage.ChatName, ChatEvent{
+						ChatName: newMessage.ChatName,
+						Type:     "delta",
+						OfDelta: fmt.Sprintf(
+							`
+								<div class="chat chat-start mr-auto" id="delta-container" hx-swap-oob="true">
+									<div class="chat-bubble chat-bubble-secondary min-w-[100px] text-left">
+										<span>%s</span>
+									</div>
+								</div>
+							`,
+							deltaBuilder.String(),
+						),
+					}); err != nil {
+						log.Errorf("failed to publish assistant message: %w", err)
+					}
+				},
+			)
 			if err != nil {
-				continue
+				return fmt.Errorf("failed to stream response: %w", err)
 			}
 
 			messagesDb[newMessage.ChatName] = append(chatMessages, response...)
 
-			for _, responseMessage := range response {
-				if responseMessage.Role == "assistant" {
-					assistantMessage := responseMessage.Content
-					if assistantMessage != "" {
-						p.publisher.Publish(newMessage.ChatName, ChatEvent{
-							ChatName: newMessage.ChatName,
-							Message:  domain.ChatMessage{Role: "assistant", Content: assistantMessage},
-						})
-					}
-				}
-			}
 		}
 	}
 }

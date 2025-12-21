@@ -54,6 +54,7 @@ templ MessagesList(chatName string, chatMessages []domain.ChatMessage) {
 		for _, msg := range chatMessages {
 			@Message(msg)
 		}
+		<div id="delta-container"></div>
 	</div>
 }
 

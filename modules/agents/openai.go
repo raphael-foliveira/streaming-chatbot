@@ -31,13 +31,16 @@ func (o *OpenAI) StreamResponse(
 	tools []domain.LLMTool,
 	callback func(delta string),
 ) ([]domain.ChatMessage, error) {
-	var err error
+	var (
+		err              error
+		hasFunctionCalls bool
+	)
 
 	initialMessagesLength := len(messages)
 	openaiMessages := slicesx.Map(messages, o.chatMessageToOpenAIMessage)
 
 	for {
-		hasFunctionCalls := false
+		hasFunctionCalls = false
 		stream := o.client.Responses.NewStreaming(ctx, responses.ResponseNewParams{
 			Input: responses.ResponseNewParamsInputUnion{
 				OfInputItemList: openaiMessages,
@@ -65,6 +68,7 @@ func (o *OpenAI) StreamResponse(
 			case "response.completed":
 				completedEvent := currentEvent.AsResponseCompleted()
 				response := &completedEvent.Response
+				openaiMessages = append(openaiMessages, o.responsesResponseToInputItems(response)...)
 				openaiMessages, hasFunctionCalls, err = o.handleResponse(ctx, tools, response, openaiMessages)
 				if err != nil {
 					return nil, fmt.Errorf("error handling response: %w", err)
