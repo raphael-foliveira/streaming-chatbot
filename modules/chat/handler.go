@@ -1,28 +1,31 @@
 package chat
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"net/http"
 
+	"github.com/a-h/templ"
 	"github.com/labstack/echo/v4"
 	"github.com/raphael-foliveira/htmbot/domain"
 	"github.com/raphael-foliveira/htmbot/platform/httpx"
 )
 
 type Handler struct {
-	enqueuer domain.MessageEnqueuer
-	pubsub   domain.PubSub[ChatEvent]
+	enqueuer   domain.MessageEnqueuer
+	pubsub     domain.PubSub[ChatEvent]
+	repository domain.ChatRepository
 }
 
 func NewHandler(
 	enqueuer domain.MessageEnqueuer,
 	pubsub domain.PubSub[ChatEvent],
+	repository domain.ChatRepository,
 ) *Handler {
 	return &Handler{
-		enqueuer: enqueuer,
-		pubsub:   pubsub,
+		enqueuer:   enqueuer,
+		pubsub:     pubsub,
+		repository: repository,
 	}
 }
 
@@ -44,13 +47,18 @@ func (h *Handler) Create(c echo.Context) error {
 	if name == "" {
 		return httpx.Render(c, Index(errors.New("chat name is required")))
 	}
+
+	if err := h.repository.CreateChat(c.Request().Context(), name); err != nil {
+		return httpx.Render(c, Index(fmt.Errorf("failed to create chat: %w", err)))
+	}
+
 	return c.Redirect(http.StatusFound, fmt.Sprintf("/chat/%s", name))
 }
 
 func (h *Handler) ChatPage(c echo.Context) error {
 	chatName := c.Param("chat-name")
-	chatMessages, ok := messagesDb[chatName]
-	if !ok {
+	chatMessages, err := h.repository.GetMessages(c.Request().Context(), chatName)
+	if err != nil {
 		chatMessages = []domain.ChatMessage{}
 	}
 
@@ -67,7 +75,9 @@ func (h *Handler) SendMessage(c echo.Context) error {
 
 	newMessage := domain.ChatMessage{Role: "user", Content: text}
 
-	messagesDb[chatName] = append(messagesDb[chatName], newMessage)
+	if err := h.repository.SaveMessage(c.Request().Context(), chatName, newMessage); err != nil {
+		return fmt.Errorf("failed to save user message: %w", err)
+	}
 
 	if err := h.pubsub.Publish(chatName, ChatEvent{ChatName: chatName, OfMessage: newMessage}); err != nil {
 		return fmt.Errorf("failed to publish user message: %w", err)
@@ -77,7 +87,12 @@ func (h *Handler) SendMessage(c echo.Context) error {
 		return fmt.Errorf("failed to enqueue user message: %w", err)
 	}
 
-	return httpx.Render(c, ChatContainer(chatName, messagesDb[chatName]))
+	messages, err := h.repository.GetMessages(c.Request().Context(), chatName)
+	if err != nil {
+		return fmt.Errorf("failed to get messages: %w", err)
+	}
+
+	return httpx.Render(c, ChatContainer(chatName, messages))
 }
 
 func (h *Handler) ListenForMessages(c echo.Context) error {
@@ -104,24 +119,20 @@ func (h *Handler) ListenForMessages(c echo.Context) error {
 				continue
 			}
 
-			templBuffer := bytes.NewBuffer(nil)
-
-			switch message.Type {
-			case "delta":
-				templBuffer.WriteString(message.OfDelta)
-			case "message":
-				if err := Message(message.OfMessage).Render(
-					c.Request().Context(),
-					templBuffer,
-				); err != nil {
-					return fmt.Errorf("failed to render message: %w", err)
+			msgTemplate := func() templ.Component {
+				switch message.Type {
+				case "delta":
+					return MessageDelta(message.OfDelta)
+				default:
+					return Message(message.OfMessage)
 				}
-			}
+			}()
 
-			if err := httpx.WriteEventStream(
+			if err := httpx.WriteEventStreamTemplate(
+				c.Request().Context(),
 				w,
 				"chat-messages",
-				templBuffer.String(),
+				msgTemplate,
 			); err != nil {
 				return err
 			}

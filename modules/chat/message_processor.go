@@ -2,7 +2,6 @@ package chat
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -11,24 +10,25 @@ import (
 )
 
 type MessageProcessor struct {
-	ch        chan ChatEvent
-	publisher domain.PubSub[ChatEvent]
-	agent     domain.LLMAgent
+	ch         chan ChatEvent
+	publisher  domain.PubSub[ChatEvent]
+	agent      domain.LLMAgent
+	repository domain.ChatRepository
 }
 
 func NewMessageProcessor(
 	ch chan ChatEvent,
 	publisher domain.PubSub[ChatEvent],
 	agent domain.LLMAgent,
+	repository domain.ChatRepository,
 ) *MessageProcessor {
 	return &MessageProcessor{
-		ch:        ch,
-		publisher: publisher,
-		agent:     agent,
+		ch:         ch,
+		publisher:  publisher,
+		agent:      agent,
+		repository: repository,
 	}
 }
-
-var messagesDb = map[string][]domain.ChatMessage{}
 
 func (p *MessageProcessor) ProcessUserMessages(ctx context.Context) error {
 	for {
@@ -36,7 +36,11 @@ func (p *MessageProcessor) ProcessUserMessages(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case newMessage := <-p.ch:
-			chatMessages := messagesDb[newMessage.ChatName]
+			chatMessages, err := p.repository.GetMessages(ctx, newMessage.ChatName)
+			if err != nil {
+				log.Errorf("failed to get chat messages: %w", err)
+				continue
+			}
 
 			deltaBuilder := strings.Builder{}
 
@@ -46,19 +50,11 @@ func (p *MessageProcessor) ProcessUserMessages(ctx context.Context) error {
 				[]domain.LLMTool{&TestTool{}},
 				func(delta string) {
 					deltaBuilder.WriteString(delta)
+
 					if err := p.publisher.Publish(newMessage.ChatName, ChatEvent{
 						ChatName: newMessage.ChatName,
 						Type:     "delta",
-						OfDelta: fmt.Sprintf(
-							`
-								<div class="chat chat-start mr-auto" id="delta-container" hx-swap-oob="true">
-									<div class="chat-bubble chat-bubble-secondary min-w-[100px] text-left">
-										<span>%s</span>
-									</div>
-								</div>
-							`,
-							deltaBuilder.String(),
-						),
+						OfDelta:  deltaBuilder.String(),
 					}); err != nil {
 						log.Errorf("failed to publish assistant message: %w", err)
 					}
@@ -68,48 +64,10 @@ func (p *MessageProcessor) ProcessUserMessages(ctx context.Context) error {
 				return fmt.Errorf("failed to stream response: %w", err)
 			}
 
-			messagesDb[newMessage.ChatName] = append(chatMessages, response...)
+			if err := p.repository.SaveMessage(ctx, newMessage.ChatName, response...); err != nil {
+				return fmt.Errorf("failed to save assistant message: %w", err)
+			}
 
 		}
-	}
-}
-
-var _ domain.LLMTool = &TestTool{}
-
-type TestTool struct{}
-
-// Description implements domain.LLMTool.
-func (t *TestTool) Description() string {
-	return "Call this tool when prompted to test a tool"
-}
-
-// Execute implements domain.LLMTool.
-func (t *TestTool) Execute(ctx context.Context, args string) (string, error) {
-	var argsMap map[string]any
-	if err := json.Unmarshal([]byte(args), &argsMap); err != nil {
-		return "", err
-	}
-	name, ok := argsMap["name"].(string)
-	if !ok {
-		return "", fmt.Errorf("name is required")
-	}
-	return fmt.Sprintf("Tool executed successfully with name set to: %s", name), nil
-}
-
-// Name implements domain.LLMTool.
-func (t *TestTool) Name() string {
-	return "test-tool"
-}
-
-// Parameters implements domain.LLMTool.
-func (t *TestTool) Parameters() map[string]any {
-	return map[string]any{
-		"type": "object",
-		"properties": map[string]any{
-			"name": map[string]any{
-				"type":        "string",
-				"description": "a random name",
-			},
-		},
 	}
 }

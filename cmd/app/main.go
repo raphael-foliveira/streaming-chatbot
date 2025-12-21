@@ -19,23 +19,25 @@ func main() {
 
 	e := echo.New()
 
-	e.Use(middleware.LoggerWithConfig(middleware.DefaultLoggerConfig))
+	e.Use(middleware.RequestLogger())
 
 	e.GET("/assets/*", echo.WrapHandler(fileHandler))
 
 	agent := agents.NewOpenAI(os.Getenv("OPENAI_API_KEY"))
 
+	chatRepository := chat.NewInMemoryRepository()
 	messagesChannel := make(chan chat.ChatEvent, 1000)
 	enqueuer := chat.NewMessageEnqueuer(messagesChannel)
 	publisher := pubsub.NewChannel(map[string][]chan chat.ChatEvent{})
 
-	chatHandler := chat.NewHandler(enqueuer, publisher)
+	chatHandler := chat.NewHandler(enqueuer, publisher, chatRepository)
 	chatHandler.Register(e)
 
 	messagesProcessor := chat.NewMessageProcessor(
 		messagesChannel,
 		publisher,
 		agent,
+		chatRepository,
 	)
 	go messagesProcessor.ProcessUserMessages(context.Background())
 

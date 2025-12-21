@@ -3,12 +3,12 @@ package domain
 import "context"
 
 type ChatMessage struct {
-	ID               string
-	Role             string
-	Content          string
-	OfFunctionCall   *ChatFunctionCallMessage
-	OfFunctionResult *ChatFunctionResultMessage
-	OfReasoning      *ChatReasoningMessage
+	ID               string                     `json:"id"`
+	Role             string                     `json:"role"`
+	Content          string                     `json:"content"`
+	OfFunctionCall   *ChatFunctionCallMessage   `json:"of_function_call"`
+	OfFunctionResult *ChatFunctionResultMessage `json:"of_function_result"`
+	OfReasoning      *ChatReasoningMessage      `json:"of_reasoning"`
 }
 
 type ChatReasoningMessageSummary struct {
@@ -35,4 +35,10 @@ type ChatFunctionResultMessage struct {
 
 type MessageEnqueuer interface {
 	EnqueueUserMessage(ctx context.Context, chatName, message string) error
+}
+
+type ChatRepository interface {
+	GetMessages(ctx context.Context, chatName string) ([]ChatMessage, error)
+	SaveMessage(ctx context.Context, chatName string, messages ...ChatMessage) error
+	CreateChat(ctx context.Context, chatName string) error
 }
