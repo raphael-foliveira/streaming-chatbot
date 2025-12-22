@@ -5,31 +5,6 @@ import (
 	"github.com/raphael-foliveira/htmbot/domain"
 )
 
-templ UserMessage(text string) {
-	<div class="chat chat-end ml-auto">
-		<div class="chat-bubble chat-bubble-primary min-w-25 text-left">
-			<span>{ text }</span>
-		</div>
-	</div>
-}
-
-templ AssistantMessage(text string) {
-	<div class="chat chat-start mr-auto">
-		<div class="chat-bubble chat-bubble-secondary min-w-25 text-left">
-			<span>{ text }</span>
-		</div>
-	</div>
-}
-
-templ Message(chatMessage domain.ChatMessage) {
-	switch  {
-		case chatMessage.Role == "user":
-			@UserMessage(chatMessage.Content)
-		case chatMessage.Role == "assistant":
-			@AssistantMessage(chatMessage.Content)
-	}
-}
-
 templ MessageDelta(delta string) {
 	<div class="chat chat-start mr-auto" id="delta-container" hx-swap-oob="true">
 		<div class="chat-bubble chat-bubble-secondary min-w-25 text-left">
@@ -38,54 +13,69 @@ templ MessageDelta(delta string) {
 	</div>
 }
 
-templ MessagesList(chatName string, chatMessages []domain.ChatMessage) {
-	<div
-		class="flex flex-col gap-1 p-4 chat"
-		hx-ext="sse"
-		sse-connect={ fmt.Sprintf("/chat/%s/sse", chatName) }
-		sse-swap="chat-messages"
-		hx-swap="beforeend"
-	>
-		for _, msg := range chatMessages {
-			@Message(msg)
-		}
-		<div id="delta-container"></div>
-	</div>
-}
-
-templ MessageInput(chatName string) {
-	<div
-		class="mb-0"
-		id="message-input-container"
-		x-data="{isSending: false}"
-	>
-		<form
-			hx-post={ fmt.Sprintf("/chat/%s/send-message", chatName) }
-			hx-target="#chat-container"
-			hx-swap="outerHTML"
-		>
-			<div class="flex flex-col gap-2">
-				<textarea name="chat-input" id="chat-input" class="textarea w-full"></textarea>
-				<div class="w-full flex justify-center h-8">
-					<button type="submit" class="button w-12" x-on:click="isSending = true" x-show="! isSending">
-						Send
-					</button>
-					<div x-show="isSending" class="text-center">
-						<span class="loading loading-spinner loading-md"></span>
-					</div>
-				</div>
-			</div>
-		</form>
+templ Message(msg domain.ChatMessage) {
+	<div class={ fmt.Sprintf("chat %s", resolveMessageClass(msg.Role)) }>
+		<div class={ fmt.Sprintf("chat-bubble %s min-w-25 text-left", resolveMessageBubbleClass(msg.Role)) }>
+			<span>{ msg.Content }</span>
+		</div>
 	</div>
 }
 
 templ ChatContainer(chatName string, chatMessages []domain.ChatMessage) {
 	<div id="chat-container" class="w-full max-w-200 mx-auto h-screen flex flex-col">
-		<div class="flex-1 overflow-auto">
-			@MessagesList(chatName, chatMessages)
+		<div
+			class="flex flex-col gap-1 p-4 chat flex-1 overflow-auto"
+			hx-ext="sse"
+			sse-connect={ fmt.Sprintf("/chat/%s/sse", chatName) }
+			sse-swap="chat-messages"
+			hx-swap="beforeend"
+		>
+			for _, msg := range chatMessages {
+				@Message(msg)
+			}
+			<div id="delta-container"></div>
 		</div>
-		<div class="sticky bottom-0 bg-base-100 p-4">
-			@MessageInput(chatName)
+		<div
+			class="sticky bottom-0 bg-base-100 p-4 mb-0"
+			class="mb-0"
+			id="message-input-container"
+			x-data="{isSending: false}"
+		>
+			<form
+				hx-post={ fmt.Sprintf("/chat/%s/send-message", chatName) }
+				hx-target="#chat-container"
+				hx-swap="outerHTML"
+			>
+				<div class="flex flex-col gap-2">
+					<textarea name="chat-input" id="chat-input" class="textarea w-full"></textarea>
+					<div class="w-full flex justify-center h-8">
+						<button type="submit" class="button w-12" x-on:click="isSending = true" x-show="! isSending">
+							Send
+						</button>
+						<div x-show="isSending" class="text-center">
+							<span class="loading loading-spinner loading-md"></span>
+						</div>
+					</div>
+				</div>
+			</form>
 		</div>
 	</div>
+}
+
+func resolveMessageClass(role string) string {
+	switch role {
+	case "user":
+		return "chat-end ml-auto"
+	default:
+		return "chat-start mr-auto"
+	}
+}
+
+func resolveMessageBubbleClass(role string) string {
+	switch role {
+	case "user":
+		return "chat-bubble-primary"
+	default:
+		return "chat-bubble-secondary"
+	}
 }
