@@ -6,7 +6,11 @@ import (
 )
 
 templ MessageDelta(delta ChatDelta) {
-	<div class="chat chat-start mr-auto" id={ delta.ID } hx-swap-oob="true">
+	<div
+		class="chat chat-start mr-auto"
+		id={ delta.ID }
+		hx-swap-oob="true"
+	>
 		<div class="chat-bubble chat-bubble-secondary min-w-25 text-left">
 			<span>{ delta.Delta }</span>
 		</div>
@@ -14,7 +18,10 @@ templ MessageDelta(delta ChatDelta) {
 }
 
 templ MessageDeltaStart(deltaID string) {
-	<div class="chat chat-start mr-auto" id={ deltaID }>
+	<div
+		class="chat chat-start mr-auto"
+		id={ deltaID }
+	>
 		<div class="chat-bubble chat-bubble-secondary min-w-25 text-left">
 			<span></span>
 		</div>
@@ -58,6 +65,7 @@ templ ChatForm(chatName string) {
 		hx-target="this"
 		hx-swap="outerHTML"
 		x-data="{isSubmitting: false}"
+		@submit="isSubmitting = true"
 	>
 		<div class="flex flex-col gap-2">
 			<textarea
@@ -67,10 +75,19 @@ templ ChatForm(chatName string) {
 				@keydown.shift.enter.prevent="$el.form.requestSubmit()"
 			></textarea>
 			<div class="w-full flex justify-center h-8">
-				<button type="submit" class="button w-12" x-show="!isSubmitting" @click="isSubmitting = true">
-					Send
+				<button
+					type="submit"
+					class="btn btn-neutral w-20"
+					x-bind:disabled="isSubmitting"
+				>
+					<span x-show="!isSubmitting">
+						Send
+					</span>
+					<span
+						class="loading loading-spinner"
+						x-show="isSubmitting"
+					></span>
 				</button>
-				<span class="loading loading-spinner" x-show="isSubmitting"></span>
 			</div>
 		</div>
 	</form>
