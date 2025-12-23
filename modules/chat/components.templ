@@ -60,9 +60,14 @@ templ ChatForm(chatName string) {
 		x-data="{isSubmitting: false}"
 	>
 		<div class="flex flex-col gap-2">
-			<textarea name="chat-input" id="chat-input" class="textarea w-full"></textarea>
+			<textarea
+				name="chat-input"
+				id="chat-input"
+				class="textarea w-full"
+				@keydown.shift.enter.prevent="$el.form.requestSubmit()"
+			></textarea>
 			<div class="w-full flex justify-center h-8">
-				<button type="submit" class="button w-12" x-show="!isSubmitting" x-on:click="isSubmitting = true">
+				<button type="submit" class="button w-12" x-show="!isSubmitting" @click="isSubmitting = true">
 					Send
 				</button>
 				<span class="loading loading-spinner" x-show="isSubmitting"></span>
