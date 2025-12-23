@@ -8,8 +8,8 @@ import (
 	"os"
 
 	"github.com/raphael-foliveira/htmbot/domain"
-	"github.com/raphael-foliveira/htmbot/modules/agents"
 	"github.com/raphael-foliveira/htmbot/modules/chat"
+	"github.com/raphael-foliveira/htmbot/platform/agents"
 )
 
 func main() {

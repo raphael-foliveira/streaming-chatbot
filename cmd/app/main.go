@@ -9,8 +9,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/raphael-foliveira/htmbot"
-	"github.com/raphael-foliveira/htmbot/modules/agents"
 	"github.com/raphael-foliveira/htmbot/modules/chat"
+	"github.com/raphael-foliveira/htmbot/platform/agents"
 	"github.com/raphael-foliveira/htmbot/platform/pubsub"
 )
 
