@@ -8,5 +8,10 @@ type ChatEvent struct {
 	ChatName  string
 	Type      string
 	OfMessage domain.ChatMessage
-	OfDelta   string
+	OfDelta   ChatDelta
+}
+
+type ChatDelta struct {
+	ID    string
+	Delta string
 }

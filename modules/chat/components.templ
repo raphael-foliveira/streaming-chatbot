@@ -5,10 +5,18 @@ import (
 	"github.com/raphael-foliveira/htmbot/domain"
 )
 
-templ MessageDelta(delta string) {
-	<div class="chat chat-start mr-auto" id="delta-container" hx-swap-oob="true">
+templ MessageDelta(delta ChatDelta) {
+	<div class="chat chat-start mr-auto" id={ delta.ID } hx-swap-oob="true">
 		<div class="chat-bubble chat-bubble-secondary min-w-25 text-left">
-			<span>{ delta }</span>
+			<span>{ delta.Delta }</span>
+		</div>
+	</div>
+}
+
+templ MessageDeltaStart(deltaID string) {
+	<div class="chat chat-start mr-auto" id={ deltaID }>
+		<div class="chat-bubble chat-bubble-secondary min-w-25 text-left">
+			<span></span>
 		</div>
 	</div>
 }
@@ -33,28 +41,23 @@ templ ChatContainer(chatName string, chatMessages []domain.ChatMessage) {
 			for _, msg := range chatMessages {
 				@Message(msg)
 			}
-			<div id="delta-container"></div>
 		</div>
 		<div
 			class="sticky bottom-0 bg-base-100 p-4 mb-0"
 			class="mb-0"
 			id="message-input-container"
-			x-data="{isSending: false}"
 		>
 			<form
 				hx-post={ fmt.Sprintf("/chat/%s/send-message", chatName) }
-				hx-target="#chat-container"
-				hx-swap="outerHTML"
+				hx-swap="none"
+				hx-on::after-request="this.reset()"
 			>
 				<div class="flex flex-col gap-2">
 					<textarea name="chat-input" id="chat-input" class="textarea w-full"></textarea>
 					<div class="w-full flex justify-center h-8">
-						<button type="submit" class="button w-12" x-on:click="isSending = true" x-show="! isSending">
+						<button type="submit" class="button w-12">
 							Send
 						</button>
-						<div x-show="isSending" class="text-center">
-							<span class="loading loading-spinner loading-md"></span>
-						</div>
 					</div>
 				</div>
 			</form>

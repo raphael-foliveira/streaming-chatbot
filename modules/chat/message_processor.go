@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/labstack/gommon/log"
 	"github.com/raphael-foliveira/htmbot/domain"
 )
@@ -42,21 +43,39 @@ func (p *MessageProcessor) ProcessUserMessages(ctx context.Context) error {
 				continue
 			}
 
-			deltaBuilder := strings.Builder{}
+			deltaId := uuid.New().String()
 
+			builder := strings.Builder{}
+
+			isFirstDelta := true
 			response, err := p.agent.StreamResponse(
 				ctx,
 				append(chatMessages, newMessage.OfMessage),
 				[]domain.LLMTool{&TestTool{}},
 				func(delta string) {
-					deltaBuilder.WriteString(delta)
+					if isFirstDelta {
+						if err := p.publisher.Publish(newMessage.ChatName, ChatEvent{
+							Type:     "delta_start",
+							ChatName: newMessage.ChatName,
+							OfDelta: ChatDelta{
+								ID: deltaId,
+							},
+						}); err != nil {
+							log.Errorf("failed to publish delta_start event: %w", err)
+						}
+						isFirstDelta = false
+					}
 
+					builder.WriteString(delta)
 					if err := p.publisher.Publish(newMessage.ChatName, ChatEvent{
-						ChatName: newMessage.ChatName,
 						Type:     "delta",
-						OfDelta:  deltaBuilder.String(),
+						ChatName: newMessage.ChatName,
+						OfDelta: ChatDelta{
+							ID:    deltaId,
+							Delta: builder.String(),
+						},
 					}); err != nil {
-						log.Errorf("failed to publish assistant message: %w", err)
+						log.Errorf("failed to publish delta event: %w", err)
 					}
 				},
 			)

@@ -79,7 +79,11 @@ func (h *Handler) SendMessage(c echo.Context) error {
 		return fmt.Errorf("failed to save user message: %w", err)
 	}
 
-	if err := h.pubsub.Publish(chatName, ChatEvent{ChatName: chatName, OfMessage: newMessage}); err != nil {
+	if err := h.pubsub.Publish(chatName, ChatEvent{
+		Type:      "message",
+		ChatName:  chatName,
+		OfMessage: newMessage,
+	}); err != nil {
 		return fmt.Errorf("failed to publish user message: %w", err)
 	}
 
@@ -87,12 +91,7 @@ func (h *Handler) SendMessage(c echo.Context) error {
 		return fmt.Errorf("failed to enqueue user message: %w", err)
 	}
 
-	messages, err := h.repository.GetMessages(c.Request().Context(), chatName)
-	if err != nil {
-		return fmt.Errorf("failed to get messages: %w", err)
-	}
-
-	return httpx.Render(c, ChatContainer(chatName, messages))
+	return c.NoContent(http.StatusNoContent)
 }
 
 func (h *Handler) ListenForMessages(c echo.Context) error {
@@ -123,6 +122,8 @@ func (h *Handler) ListenForMessages(c echo.Context) error {
 				switch message.Type {
 				case "delta":
 					return MessageDelta(message.OfDelta)
+				case "delta_start":
+					return MessageDeltaStart(message.OfDelta.ID)
 				default:
 					return Message(message.OfMessage)
 				}
