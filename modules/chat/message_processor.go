@@ -51,7 +51,7 @@ func (p *MessageProcessor) ProcessUserMessages(ctx context.Context) error {
 			response, err := p.agent.StreamResponse(
 				ctx,
 				append(chatMessages, newMessage.OfMessage),
-				[]domain.LLMTool{&TestTool{}},
+				[]domain.LLMTool{NewTestTool()},
 				func(delta string) {
 					if isFirstDelta {
 						if err := p.publisher.Publish(newMessage.ChatName, ChatEvent{

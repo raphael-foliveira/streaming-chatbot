@@ -17,7 +17,7 @@ func main() {
 
 	responses, err := agent.StreamResponse(context.Background(), []domain.ChatMessage{
 		{Role: "user", Content: "Can you call the available tool and tell me how it went?"},
-	}, []domain.LLMTool{&chat.TestTool{}}, func(delta string) {
+	}, []domain.LLMTool{chat.NewTestTool()}, func(delta string) {
 		fmt.Print(delta)
 	})
 	if err != nil {
