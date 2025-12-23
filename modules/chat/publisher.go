@@ -11,7 +11,15 @@ type ChatEvent struct {
 	OfDelta   ChatDelta
 }
 
+func (c *ChatEvent) Delta() ChatDelta {
+	return c.OfDelta
+}
+
+func (c *ChatEvent) Message() domain.ChatMessage {
+	return c.OfMessage
+}
+
 type ChatDelta struct {
-	ID    string
-	Delta string
+	ID   string
+	Text string
 }

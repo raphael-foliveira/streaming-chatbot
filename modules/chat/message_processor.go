@@ -47,32 +47,28 @@ func (p *MessageProcessor) ProcessUserMessages(ctx context.Context) error {
 
 			builder := strings.Builder{}
 
-			isFirstDelta := true
+			if err := p.publisher.Publish(newMessage.ChatName, ChatEvent{
+				Type:     "delta_start",
+				ChatName: newMessage.ChatName,
+				OfDelta: ChatDelta{
+					ID: deltaId,
+				},
+			}); err != nil {
+				log.Errorf("failed to publish delta_start event: %w", err)
+			}
+
 			response, err := p.agent.StreamResponse(
 				ctx,
 				append(chatMessages, newMessage.OfMessage),
 				[]domain.LLMTool{NewTestTool()},
 				func(delta string) {
-					if isFirstDelta {
-						if err := p.publisher.Publish(newMessage.ChatName, ChatEvent{
-							Type:     "delta_start",
-							ChatName: newMessage.ChatName,
-							OfDelta: ChatDelta{
-								ID: deltaId,
-							},
-						}); err != nil {
-							log.Errorf("failed to publish delta_start event: %w", err)
-						}
-						isFirstDelta = false
-					}
-
 					builder.WriteString(delta)
 					if err := p.publisher.Publish(newMessage.ChatName, ChatEvent{
 						Type:     "delta",
 						ChatName: newMessage.ChatName,
 						OfDelta: ChatDelta{
-							ID:    deltaId,
-							Delta: builder.String(),
+							ID:   deltaId,
+							Text: builder.String(),
 						},
 					}); err != nil {
 						log.Errorf("failed to publish delta event: %w", err)

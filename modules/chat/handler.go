@@ -121,9 +121,9 @@ func (h *Handler) ListenForMessages(c echo.Context) error {
 			msgTemplate := func() templ.Component {
 				switch message.Type {
 				case "delta":
-					return MessageDelta(message.OfDelta)
+					return MessageDelta(message)
 				case "delta_start":
-					return MessageDeltaStart(message.OfDelta.ID)
+					return MessageDeltaStart(message)
 				default:
 					return Message(message.OfMessage)
 				}
