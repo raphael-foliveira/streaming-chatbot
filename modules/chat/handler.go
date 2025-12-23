@@ -91,7 +91,7 @@ func (h *Handler) SendMessage(c echo.Context) error {
 		return fmt.Errorf("failed to enqueue user message: %w", err)
 	}
 
-	return c.NoContent(http.StatusNoContent)
+	return httpx.Render(c, ChatForm(chatName))
 }
 
 func (h *Handler) ListenForMessages(c echo.Context) error {

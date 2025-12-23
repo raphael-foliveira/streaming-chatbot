@@ -47,22 +47,28 @@ templ ChatContainer(chatName string, chatMessages []domain.ChatMessage) {
 			class="mb-0"
 			id="message-input-container"
 		>
-			<form
-				hx-post={ fmt.Sprintf("/chat/%s/send-message", chatName) }
-				hx-swap="none"
-				hx-on::after-request="this.reset()"
-			>
-				<div class="flex flex-col gap-2">
-					<textarea name="chat-input" id="chat-input" class="textarea w-full"></textarea>
-					<div class="w-full flex justify-center h-8">
-						<button type="submit" class="button w-12">
-							Send
-						</button>
-					</div>
-				</div>
-			</form>
+			@ChatForm(chatName)
 		</div>
 	</div>
+}
+
+templ ChatForm(chatName string) {
+	<form
+		hx-post={ fmt.Sprintf("/chat/%s/send-message", chatName) }
+		hx-target="this"
+		hx-swap="outerHTML"
+		x-data="{isSubmitting: false}"
+	>
+		<div class="flex flex-col gap-2">
+			<textarea name="chat-input" id="chat-input" class="textarea w-full"></textarea>
+			<div class="w-full flex justify-center h-8">
+				<button type="submit" class="button w-12" x-show="!isSubmitting" x-on:click="isSubmitting = true">
+					Send
+				</button>
+				<span class="loading loading-spinner" x-show="isSubmitting"></span>
+			</div>
+		</div>
+	</form>
 }
 
 func resolveMessageClass(role string) string {
