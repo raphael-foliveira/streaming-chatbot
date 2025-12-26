@@ -148,7 +148,7 @@ func (o *OpenAI) handleResponse(ctx context.Context, tools []domain.LLMTool, res
 				currentMessages,
 				responses.ResponseInputItemParamOfFunctionCallOutput(
 					toolCall.CallID,
-					chatMessage.OfFunctionResult.Result,
+					*chatMessage.Result,
 				),
 			)
 		}
@@ -168,12 +168,11 @@ func (o *OpenAI) processToolCall(
 			if err != nil {
 				return domain.ChatMessage{}, fmt.Errorf("error executing tool: %w", err)
 			}
+			toolName := tool.Name()
 			return domain.ChatMessage{
-				OfFunctionResult: &domain.ChatFunctionResultMessage{
-					Name:   tool.Name(),
-					Result: result,
-					ID:     toolCall.ID,
-				},
+				Name:   &toolName,
+				Result: &result,
+				CallID: &toolCall.ID,
 			}, nil
 		}
 	}
@@ -185,12 +184,12 @@ func (o *OpenAI) processToolCall(
 		return domain.ChatMessage{}, fmt.Errorf("failed to marshal error message: %w", err)
 	}
 
+	messageStr := string(message)
+
 	return domain.ChatMessage{
-		OfFunctionResult: &domain.ChatFunctionResultMessage{
-			Name:   toolCall.Name,
-			ID:     toolCall.ID,
-			Result: string(message),
-		},
+		Name:   &toolCall.Name,
+		CallID: &toolCall.ID,
+		Result: &messageStr,
 	}, nil
 }
 
@@ -207,17 +206,17 @@ func (o *OpenAI) chatMessageToOpenAIMessage(message domain.ChatMessage) response
 			responses.EasyInputMessageRoleAssistant,
 		)
 
-	case message.OfFunctionCall != nil:
+	case message.Args != nil:
 		return responses.ResponseInputItemParamOfFunctionCall(
-			message.OfFunctionCall.Args,
-			message.OfFunctionCall.CallID,
-			message.OfFunctionCall.Name,
+			*message.Args,
+			*message.CallID,
+			*message.Name,
 		)
 
-	case message.OfFunctionResult != nil:
+	case message.Result != nil:
 		return responses.ResponseInputItemParamOfFunctionCallOutput(
-			message.OfFunctionResult.CallID,
-			message.OfFunctionResult.Result,
+			*message.CallID,
+			*message.Result,
 		)
 	default:
 		return responses.ResponseInputItemUnionParam{}
@@ -249,11 +248,9 @@ func (o *OpenAI) openAIMessageToChatMessage(message responses.ResponseInputItemU
 
 	case message.OfFunctionCall != nil:
 		return domain.ChatMessage{
-			OfFunctionCall: &domain.ChatFunctionCallMessage{
-				Name:   message.OfFunctionCall.Name,
-				Args:   message.OfFunctionCall.Arguments,
-				CallID: message.OfFunctionCall.CallID,
-			},
+			Name:   &message.OfFunctionCall.Name,
+			Args:   &message.OfFunctionCall.Arguments,
+			CallID: &message.OfFunctionCall.CallID,
 		}
 
 	case message.OfFunctionCallOutput != nil:
@@ -262,49 +259,10 @@ func (o *OpenAI) openAIMessageToChatMessage(message responses.ResponseInputItemU
 			result = message.OfFunctionCallOutput.Output.OfString.Value
 		}
 		return domain.ChatMessage{
-			OfFunctionResult: &domain.ChatFunctionResultMessage{
-				ID:     message.OfFunctionCallOutput.ID.Value,
-				CallID: message.OfFunctionCallOutput.CallID,
-				Result: result,
-			},
+			CallID: &message.OfFunctionCallOutput.CallID,
+			Result: &result,
 		}
 
-	default:
-		return domain.ChatMessage{}
-	}
-}
-
-func (o *OpenAI) responsesOutputToChatMessage(output responses.ResponseOutputItemUnion) domain.ChatMessage {
-	switch output.Type {
-	case "message":
-		outputMessage := output.AsMessage()
-		return domain.ChatMessage{
-			Role:    "assistant",
-			Content: joinContents(outputMessage.Content),
-		}
-	case "function_call":
-		outputFunctionCall := output.AsFunctionCall()
-		return domain.ChatMessage{
-			OfFunctionCall: &domain.ChatFunctionCallMessage{
-				Name:   outputFunctionCall.Name,
-				Args:   outputFunctionCall.Arguments,
-				CallID: outputFunctionCall.CallID,
-			},
-		}
-	case "reasoning":
-		outputReasoning := output.AsReasoning()
-		contentsText := []string{}
-		for _, content := range outputReasoning.Content {
-			if content.Type != "refusal" {
-				contentsText = append(contentsText, content.Text)
-			}
-		}
-		return domain.ChatMessage{
-			OfReasoning: &domain.ChatReasoningMessage{
-				Summary: joinReasoningSummaries(outputReasoning.Summary),
-				Content: strings.Join(contentsText, "\n"),
-			},
-		}
 	default:
 		return domain.ChatMessage{}
 	}

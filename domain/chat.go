@@ -2,35 +2,21 @@ package domain
 
 import "context"
 
+type ChatSession struct {
+	ID   string `json:"id" db:"id"`
+	Name string `json:"name" db:"name"`
+}
+
 type ChatMessage struct {
-	ID               string                     `json:"id"`
-	Role             string                     `json:"role"`
-	Content          string                     `json:"content"`
-	OfFunctionCall   *ChatFunctionCallMessage   `json:"of_function_call"`
-	OfFunctionResult *ChatFunctionResultMessage `json:"of_function_result"`
-	OfReasoning      *ChatReasoningMessage      `json:"of_reasoning"`
-}
-
-type ChatReasoningMessageSummary struct {
-	Text string `json:"text"`
-}
-
-type ChatReasoningMessage struct {
-	Summary string `json:"summary"`
-	Content string `json:"content"`
-}
-
-type ChatFunctionCallMessage struct {
-	Name   string `json:"name"`
-	Args   string `json:"args"`
-	CallID string `json:"call_id"`
-}
-
-type ChatFunctionResultMessage struct {
-	Name   string `json:"name"`
-	Result string `json:"result"`
-	ID     string `json:"id"`
-	CallID string `json:"call_id"`
+	ID               string  `json:"id" db:"id"`
+	Role             string  `json:"role" db:"role"`
+	Content          string  `json:"content" db:"content"`
+	ChatSessionID    string  `json:"chat_session_id" db:"chat_session_id"`
+	ReasoningSummary *string `json:"reasoning_summary" db:"reasoning_summary"`
+	Name             *string `json:"name" db:"name"`
+	Args             *string `json:"args" db:"args"`
+	CallID           *string `json:"call_id" db:"call_id"`
+	Result           *string `json:"result" db:"result"`
 }
 
 type MessageEnqueuer interface {
