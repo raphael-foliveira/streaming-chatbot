@@ -1,6 +1,6 @@
-package htmbot
+package assets
 
 import "embed"
 
-//go:embed assets/*
+//go:embed *
 var Assets embed.FS

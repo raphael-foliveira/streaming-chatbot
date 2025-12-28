@@ -3,25 +3,22 @@ package main
 import (
 	"context"
 	"log"
-	"net/http"
 	"os"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/raphael-foliveira/htmbot"
+	"github.com/raphael-foliveira/htmbot/assets"
 	"github.com/raphael-foliveira/htmbot/modules/chat"
 	"github.com/raphael-foliveira/htmbot/platform/agents"
 	"github.com/raphael-foliveira/htmbot/platform/pubsub"
 )
 
 func main() {
-	fileHandler := http.FileServer(http.FS(htmbot.Assets))
-
 	e := echo.New()
 
 	e.Use(middleware.RequestLogger())
 
-	e.GET("/assets/*", echo.WrapHandler(fileHandler))
+	e.StaticFS("/assets", echo.MustSubFS(assets.Assets, ""))
 
 	agent := agents.NewOpenAI(os.Getenv("OPENAI_API_KEY"))
 
