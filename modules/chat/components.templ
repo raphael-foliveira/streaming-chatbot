@@ -38,6 +38,7 @@ templ Message(msg domain.ChatMessage) {
 
 templ ChatContainer(chatName string, chatMessages []domain.ChatMessage) {
 	<div id="chat-container" class="w-full max-w-200 mx-auto h-screen flex flex-col">
+		<a href="/chat" class="link link-secondary">Go to chats list</a>
 		<div
 			class="flex flex-col gap-1 p-4 chat flex-1 overflow-auto"
 			hx-ext="sse"
@@ -93,6 +94,25 @@ templ ChatForm(chatName string) {
 			</div>
 		</div>
 	</form>
+}
+
+templ ChatLink(chatSession domain.ChatSession) {
+	<div class="flex justify-between">
+		<a
+			href={ fmt.Sprintf("/chat/%s", chatSession.ID) }
+			class="link link-primary"
+		>{ chatSession.Name }</a>
+		<button hx-delete={ fmt.Sprintf("/chat/%s", chatSession.ID) } class="link link-warning">Delete</button>
+	</div>
+}
+
+templ ChatLinkList(chatList []domain.ChatSession) {
+	<div class="flex flex-col" id="chats-list">
+		<h3 class="text-3xl text-center">List</h3>
+		for _, cs := range chatList {
+			@ChatLink(cs)
+		}
+	</div>
 }
 
 func resolveMessageClass(role string) string {

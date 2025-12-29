@@ -36,6 +36,7 @@ func (h *Handler) Register(e *echo.Echo) {
 	g.GET("/:chat-name", h.ChatPage)
 	g.POST("/:chat-name/send-message", h.SendMessage)
 	g.GET("/:chat-name/sse", h.ListenForMessages)
+	g.DELETE("/:chat-id", h.DeleteChat)
 }
 
 func (h *Handler) Index(c echo.Context) error {
@@ -49,14 +50,15 @@ func (h *Handler) Index(c echo.Context) error {
 func (h *Handler) Create(c echo.Context) error {
 	name := c.FormValue("chat-name")
 	if name == "" {
-		return c.Redirect(http.StatusFound, "/chat")
+		return httpx.HxRedirect(c, "/chat")
 	}
 
-	if err := h.repository.CreateChat(c.Request().Context(), name); err != nil {
-		return c.Redirect(http.StatusFound, "/chat")
+	newSession, err := h.repository.CreateChat(c.Request().Context(), name)
+	if err != nil {
+		return httpx.HxRedirect(c, "/chat")
 	}
 
-	return c.Redirect(http.StatusFound, fmt.Sprintf("/chat/%s", name))
+	return httpx.Render(c, ChatLink(newSession))
 }
 
 func (h *Handler) ChatPage(c echo.Context) error {
@@ -101,6 +103,14 @@ func (h *Handler) SendMessage(c echo.Context) error {
 	}
 
 	return httpx.Render(c, ChatForm(chatName))
+}
+
+func (h *Handler) DeleteChat(c echo.Context) error {
+	chatId := c.Param("chat-id")
+	if err := h.repository.DeleteSession(c.Request().Context(), chatId); err != nil {
+		return fmt.Errorf("failed to delete chat session: %w", err)
+	}
+	return httpx.HxRedirect(c, "/chat")
 }
 
 func (h *Handler) ListenForMessages(c echo.Context) error {

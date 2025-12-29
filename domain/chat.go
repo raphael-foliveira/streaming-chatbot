@@ -30,6 +30,7 @@ type MessageEnqueuer interface {
 type ChatRepository interface {
 	GetMessages(ctx context.Context, chatName string) ([]ChatMessage, error)
 	SaveMessage(ctx context.Context, chatName string, messages ...ChatMessage) error
-	CreateChat(ctx context.Context, chatName string) error
+	CreateChat(ctx context.Context, chatName string) (ChatSession, error)
 	ListSessions(ctx context.Context) ([]ChatSession, error)
+	DeleteSession(ctx context.Context, chatId string) error
 }

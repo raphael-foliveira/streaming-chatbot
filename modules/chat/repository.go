@@ -22,12 +22,16 @@ func NewPGXRepository(pool *pgxpool.Pool) *PGXRepository {
 }
 
 const createChatQuery = `
-INSERT INTO chats (name) VALUES ($1)
+INSERT INTO chats (name) VALUES ($1) RETURNING *;
 `
 
-func (p *PGXRepository) CreateChat(ctx context.Context, chatName string) error {
-	_, err := p.pool.Exec(ctx, createChatQuery, chatName)
-	return err
+func (p *PGXRepository) CreateChat(ctx context.Context, chatName string) (domain.ChatSession, error) {
+	rows, err := p.pool.Query(ctx, createChatQuery, chatName)
+	if err != nil {
+		return domain.ChatSession{}, fmt.Errorf("failed to create chat: %w", err)
+	}
+
+	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[domain.ChatSession])
 }
 
 const getMessagesQuery = `
@@ -105,6 +109,15 @@ func (p *PGXRepository) ListSessions(ctx context.Context) ([]domain.ChatSession,
 	return pgx.CollectRows(rows, pgx.RowToStructByName[domain.ChatSession])
 }
 
+const deleteSessionQuery = `
+DELETE FROM chats WHERE id = $1;
+`
+
+func (p *PGXRepository) DeleteSession(ctx context.Context, chatId string) error {
+	_, err := p.pool.Exec(ctx, deleteSessionQuery, chatId)
+	return err
+}
+
 type InMemoryRepository struct {
 	storage map[string][]domain.ChatMessage
 }
@@ -151,4 +164,9 @@ func (r *InMemoryRepository) ListSessions(ctx context.Context) ([]domain.ChatSes
 		})
 	}
 	return sessions, nil
+}
+
+func (r *InMemoryRepository) DeleteSession(ctx context.Context, chatId string) error {
+	delete(r.storage, chatId)
+	return nil
 }
