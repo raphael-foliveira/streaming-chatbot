@@ -149,3 +149,14 @@ func resolveMessageBubbleClass(role string) string {
 		return "chat-bubble-secondary"
 	}
 }
+
+templ getMessageTemplate(event ChatEvent) {
+	switch event.Type {
+		case "delta":
+			@MessageDelta(event.Delta().ID, event.Delta().Text)
+		case "delta_start":
+			@MessageDeltaStart(event.Delta().ID)
+		default:
+			@Message(event.OfMessage)
+	}
+}

@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/a-h/templ"
 	"github.com/labstack/echo/v4"
 	"github.com/raphael-foliveira/htmbot/domain"
 	"github.com/raphael-foliveira/htmbot/platform/httpx"
@@ -130,28 +129,15 @@ func (h *Handler) ListenForMessages(c echo.Context) error {
 			return c.Request().Context().Err()
 
 		case message := <-messagesChannel:
-			msgTemplate := getMessageTemplate(message)
-
 			if err := httpx.WriteEventStreamTemplate(
 				c,
 				"chat-messages",
-				msgTemplate,
+				getMessageTemplate(message),
 			); err != nil {
 				return err
 			}
 
 			c.Response().Flush()
 		}
-	}
-}
-
-func getMessageTemplate(event ChatEvent) templ.Component {
-	switch event.Type {
-	case "delta":
-		return MessageDelta(event.Delta().ID, event.Delta().Text)
-	case "delta_start":
-		return MessageDeltaStart(event.Delta().ID)
-	default:
-		return Message(event.OfMessage)
 	}
 }
