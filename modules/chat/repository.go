@@ -82,6 +82,21 @@ func (p *PGXRepository) GetMessages(ctx context.Context, params domain.GetMessag
 	return messages, nil
 }
 
+const query = `
+SELECT name
+FROM chats
+WHERE id = $1;
+`
+
+func (p *PGXRepository) GetSessionName(ctx context.Context, chatId string) (string, error) {
+	var name string
+	err := p.pool.QueryRow(ctx, query, chatId).Scan(&name)
+	if err != nil {
+		return "", fmt.Errorf("failed to get session name: %w", err)
+	}
+	return name, nil
+}
+
 func (p *PGXRepository) SaveMessage(ctx context.Context, chatSessionId string, messages ...domain.ChatMessage) error {
 	rows := [][]any{}
 
@@ -183,4 +198,11 @@ func (r *InMemoryRepository) ListSessions(ctx context.Context) ([]domain.ChatSes
 func (r *InMemoryRepository) DeleteSession(ctx context.Context, chatId string) error {
 	delete(r.storage, chatId)
 	return nil
+}
+
+func (r *InMemoryRepository) GetSessionName(ctx context.Context, chatId string) (string, error) {
+	if _, exists := r.storage[chatId]; !exists {
+		return "", fmt.Errorf("chat %s does not exist", chatId)
+	}
+	return chatId, nil
 }
