@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/a-h/templ"
+	"github.com/labstack/echo/v4"
 )
 
 func WriteEventStream(w http.ResponseWriter, event, data string) error {
@@ -33,4 +34,12 @@ func WriteEventStreamTemplate(ctx context.Context, w http.ResponseWriter, event 
 	}
 
 	return WriteEventStream(w, event, buf.String())
+}
+
+func SetupSSE(c echo.Context) *echo.Response {
+	w := c.Response()
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	return w
 }

@@ -95,10 +95,7 @@ func (h *Handler) SendMessage(c echo.Context) error {
 }
 
 func (h *Handler) ListenForMessages(c echo.Context) error {
-	w := c.Response()
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
+	w := httpx.SetupSSE(c)
 
 	chatName := c.Param("chat-name")
 	messagesChannel, unsub, err := h.pubsub.Subscribe(chatName)
@@ -114,20 +111,7 @@ func (h *Handler) ListenForMessages(c echo.Context) error {
 			return c.Request().Context().Err()
 
 		case message := <-messagesChannel:
-			if message.ChatName != c.Param("chat-name") {
-				continue
-			}
-
-			msgTemplate := func() templ.Component {
-				switch message.Type {
-				case "delta":
-					return MessageDelta(message)
-				case "delta_start":
-					return MessageDeltaStart(message)
-				default:
-					return Message(message.OfMessage)
-				}
-			}()
+			msgTemplate := getMessageTemplate(message)
 
 			if err := httpx.WriteEventStreamTemplate(
 				c.Request().Context(),
@@ -140,5 +124,16 @@ func (h *Handler) ListenForMessages(c echo.Context) error {
 
 			w.Flush()
 		}
+	}
+}
+
+func getMessageTemplate(event ChatEvent) templ.Component {
+	switch event.Type {
+	case "delta":
+		return MessageDelta(event)
+	case "delta_start":
+		return MessageDeltaStart(event)
+	default:
+		return Message(event.OfMessage)
 	}
 }
