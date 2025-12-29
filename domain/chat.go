@@ -1,10 +1,14 @@
 package domain
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type ChatSession struct {
-	ID   string `json:"id" db:"id"`
-	Name string `json:"name" db:"name"`
+	ID        string    `json:"id" db:"id"`
+	Name      string    `json:"name" db:"name"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
 }
 
 type ChatMessage struct {
@@ -27,4 +31,5 @@ type ChatRepository interface {
 	GetMessages(ctx context.Context, chatName string) ([]ChatMessage, error)
 	SaveMessage(ctx context.Context, chatName string, messages ...ChatMessage) error
 	CreateChat(ctx context.Context, chatName string) error
+	ListSessions(ctx context.Context) ([]ChatSession, error)
 }

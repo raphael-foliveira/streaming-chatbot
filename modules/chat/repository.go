@@ -92,6 +92,19 @@ func (p *PGXRepository) SaveMessage(ctx context.Context, chatSessionId string, m
 	return nil
 }
 
+const listSessionsQuery = `
+SELECT *
+FROM chats;
+`
+
+func (p *PGXRepository) ListSessions(ctx context.Context) ([]domain.ChatSession, error) {
+	rows, err := p.pool.Query(ctx, listSessionsQuery)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, pgx.RowToStructByName[domain.ChatSession])
+}
+
 type InMemoryRepository struct {
 	storage map[string][]domain.ChatMessage
 }
@@ -128,4 +141,14 @@ func (r *InMemoryRepository) CreateChat(ctx context.Context, chatName string) er
 	}
 	r.storage[chatName] = []domain.ChatMessage{}
 	return nil
+}
+
+func (r *InMemoryRepository) ListSessions(ctx context.Context) ([]domain.ChatSession, error) {
+	sessions := []domain.ChatSession{}
+	for name := range r.storage {
+		sessions = append(sessions, domain.ChatSession{
+			Name: name,
+		})
+	}
+	return sessions, nil
 }

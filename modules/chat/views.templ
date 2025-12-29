@@ -1,23 +1,31 @@
 package chat
 
 import (
+	"fmt"
 	"github.com/raphael-foliveira/htmbot/domain"
 	"github.com/raphael-foliveira/htmbot/platform/components"
 )
 
-templ Index(err error) {
+templ Index(chatList []domain.ChatSession, err error) {
 	@components.Page("Home") {
 		Hello, world!
 		<form action="/chat" method="post">
-			<label for="chat-name">
-				Chat name:
-				<input type="text" name="chat-name" id="chat-name"/>
-				if err != nil {
-					<p class="text-red-500">{ err.Error() }</p>
-				}
-			</label>
-			<button type="submit" class="button">Create</button>
+			<div class="flex flex-col max-w-48 mx-auto">
+				<label for="chat-name">
+					Chat name:
+					<input type="text" name="chat-name" id="chat-name"/>
+					if err != nil {
+						<p class="text-red-500">{ err.Error() }</p>
+					}
+				</label>
+				<button type="submit" class="btn btn-primary">Create</button>
+			</div>
 		</form>
+		<div class="flex flex-col">
+			for _, cs := range chatList {
+				<a href={ fmt.Sprintf("/chat/%s", cs.ID) } class="link link-primary">{ cs.Name }</a>
+			}
+		</div>
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/raphael-foliveira/htmbot/assets"
@@ -31,7 +32,12 @@ func main() {
 	apiKey := mustEnv("OPENAI_API_KEY")
 	agent := agents.NewOpenAI(apiKey)
 
-	chatRepository := chat.NewInMemoryRepository()
+	dbConn, err := pgxpool.New(context.Background(), mustEnv("DATABASE_URL"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	chatRepository := chat.NewPGXRepository(dbConn)
 	messagesChannel := make(chan chat.ChatEvent, 1000)
 	enqueuer := chat.NewMessageEnqueuer(messagesChannel)
 	publisher := pubsub.NewChannel(map[string][]chan chat.ChatEvent{})

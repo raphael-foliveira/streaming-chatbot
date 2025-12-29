@@ -1,8 +1,8 @@
 package chat
 
 import (
-	"errors"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/a-h/templ"
@@ -39,28 +39,37 @@ func (h *Handler) Register(e *echo.Echo) {
 }
 
 func (h *Handler) Index(c echo.Context) error {
-	return httpx.Render(c, Index(nil))
+	chatSessions, err := h.repository.ListSessions(c.Request().Context())
+	if err != nil {
+		return fmt.Errorf("failed to list chat sessions: %w", err)
+	}
+	return httpx.Render(c, Index(chatSessions, nil))
 }
 
 func (h *Handler) Create(c echo.Context) error {
 	name := c.FormValue("chat-name")
 	if name == "" {
-		return httpx.Render(c, Index(errors.New("chat name is required")))
+		return c.Redirect(http.StatusFound, "/chat")
 	}
 
 	if err := h.repository.CreateChat(c.Request().Context(), name); err != nil {
-		return httpx.Render(c, Index(fmt.Errorf("failed to create chat: %w", err)))
+		return c.Redirect(http.StatusFound, "/chat")
 	}
 
 	return c.Redirect(http.StatusFound, fmt.Sprintf("/chat/%s", name))
 }
 
 func (h *Handler) ChatPage(c echo.Context) error {
+	log.Println("getting chat page")
 	chatName := c.Param("chat-name")
 	chatMessages, err := h.repository.GetMessages(c.Request().Context(), chatName)
 	if err != nil {
-		chatMessages = []domain.ChatMessage{}
+		log.Println("error getting messages:")
+		log.Println(err)
+		return c.Redirect(http.StatusFound, "/chat")
 	}
+
+	log.Println("rendering chat page for chat:", chatName)
 
 	return httpx.Render(c, ChatPage(chatName, chatMessages))
 }
