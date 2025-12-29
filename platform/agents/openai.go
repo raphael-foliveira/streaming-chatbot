@@ -36,8 +36,9 @@ func (o *OpenAI) StreamResponse(
 		hasFunctionCalls bool
 	)
 
-	initialMessagesLength := len(messages)
 	openaiMessages := slicesx.Map(messages, o.chatMessageToOpenAIMessage)
+	openaiMessages = o.removeOrphanToolReturns(openaiMessages)
+	initialMessagesLength := len(openaiMessages)
 
 	for {
 		hasFunctionCalls = false
@@ -79,6 +80,13 @@ func (o *OpenAI) StreamResponse(
 			}
 		}
 	}
+}
+
+func (o *OpenAI) removeOrphanToolReturns(messages []responses.ResponseInputItemUnionParam) []responses.ResponseInputItemUnionParam {
+	for messages[0].OfFunctionCallOutput != nil {
+		messages = messages[1:]
+	}
+	return messages
 }
 
 func (o *OpenAI) GenerateResponse(
@@ -305,14 +313,4 @@ func joinContents(contents []responses.ResponseOutputMessageContentUnion) string
 		}
 	}
 	return strings.Join(contentsText, "\n")
-}
-
-func joinReasoningSummaries(summaries []responses.ResponseReasoningItemSummary) string {
-	summariesText := []string{}
-	for _, summary := range summaries {
-		if summary.Type != "refusal" {
-			summariesText = append(summariesText, summary.Text)
-		}
-	}
-	return strings.Join(summariesText, "\n")
 }

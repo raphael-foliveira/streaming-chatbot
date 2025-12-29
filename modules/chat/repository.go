@@ -3,6 +3,7 @@ package chat
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -37,11 +38,21 @@ func (p *PGXRepository) CreateChat(ctx context.Context, chatName string) (domain
 const getMessagesQuery = `
 SELECT id, role, content, name, args, call_id, result, chat_session_id
 FROM chat_messages
-WHERE chat_session_id = $1
+WHERE chat_session_id = $1 
+AND created_at < $2
+ORDER BY created_at DESC
+LIMIT $3;
 `
 
-func (p *PGXRepository) GetMessages(ctx context.Context, chatSessionId string) ([]domain.ChatMessage, error) {
-	rows, err := p.pool.Query(ctx, getMessagesQuery, chatSessionId)
+func (p *PGXRepository) GetMessages(ctx context.Context, params domain.GetMessagesParams) ([]domain.ChatMessage, error) {
+	params.ApplyDefaults()
+	rows, err := p.pool.Query(
+		ctx,
+		getMessagesQuery,
+		params.ChatSessionId,
+		params.Before,
+		params.Limit,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query chat messages: %w", err)
 	}
@@ -59,11 +70,14 @@ func (p *PGXRepository) GetMessages(ctx context.Context, chatSessionId string) (
 			&message.CallID,
 			&message.Result,
 			&message.ChatSessionID,
+			&message.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan chat message: %w", err)
 		}
 		messages = append(messages, message)
 	}
+
+	slices.Reverse(messages)
 
 	return messages, nil
 }

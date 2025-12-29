@@ -63,7 +63,10 @@ func (h *Handler) Create(c echo.Context) error {
 func (h *Handler) ChatPage(c echo.Context) error {
 	log.Println("getting chat page")
 	chatName := c.Param("chat-name")
-	chatMessages, err := h.repository.GetMessages(c.Request().Context(), chatName)
+	chatMessages, err := h.repository.GetMessages(c.Request().Context(), domain.GetMessagesParams{
+		ChatSessionId: chatName,
+		Limit:         100,
+	})
 	if err != nil {
 		log.Println("error getting messages:")
 		log.Println(err)
@@ -90,9 +93,9 @@ func (h *Handler) SendMessage(c echo.Context) error {
 	}
 
 	if err := h.pubsub.Publish(chatName, ChatEvent{
-		Type:      "message",
-		ChatName:  chatName,
-		OfMessage: newMessage,
+		Type:          "message",
+		ChatSessionID: chatName,
+		OfMessage:     newMessage,
 	}); err != nil {
 		return fmt.Errorf("failed to publish user message: %w", err)
 	}
