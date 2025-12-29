@@ -21,7 +21,6 @@ templ Index(err error) {
 	}
 }
 
-
 templ ChatPage(chatName string, chatMessages []domain.ChatMessage) {
 	@components.Page(chatName) {
 		@ChatContainer(chatName, chatMessages)

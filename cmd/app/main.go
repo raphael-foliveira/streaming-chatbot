@@ -13,14 +13,23 @@ import (
 	"github.com/raphael-foliveira/htmbot/platform/pubsub"
 )
 
+func mustEnv(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		log.Fatalf("environment variable %s is required", key)
+	}
+	return value
+}
+
 func main() {
 	e := echo.New()
 
 	e.Use(middleware.RequestLogger())
 
-	e.StaticFS("/assets", echo.MustSubFS(assets.Assets, ""))
+	e.StaticFS("/assets", assets.Assets)
 
-	agent := agents.NewOpenAI(os.Getenv("OPENAI_API_KEY"))
+	apiKey := mustEnv("OPENAI_API_KEY")
+	agent := agents.NewOpenAI(apiKey)
 
 	chatRepository := chat.NewInMemoryRepository()
 	messagesChannel := make(chan chat.ChatEvent, 1000)
