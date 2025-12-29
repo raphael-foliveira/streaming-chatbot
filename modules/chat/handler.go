@@ -148,9 +148,9 @@ func (h *Handler) ListenForMessages(c echo.Context) error {
 func getMessageTemplate(event ChatEvent) templ.Component {
 	switch event.Type {
 	case "delta":
-		return MessageDelta(event)
+		return MessageDelta(event.Delta().ID, event.Delta().Text)
 	case "delta_start":
-		return MessageDeltaStart(event)
+		return MessageDeltaStart(event.Delta().ID)
 	default:
 		return Message(event.OfMessage)
 	}

@@ -5,22 +5,22 @@ import (
 	"github.com/raphael-foliveira/htmbot/domain"
 )
 
-templ MessageDelta(event ChatEvent) {
+templ MessageDelta(eventId, content string) {
 	<div
 		class="chat chat-start mr-auto"
-		id={ event.Delta().ID }
+		id={ eventId }
 		hx-swap-oob="true"
 	>
 		<div class="chat-bubble chat-bubble-secondary min-w-25 text-left">
-			<span>{ event.Delta().Text }</span>
+			<span>{ content }</span>
 		</div>
 	</div>
 }
 
-templ MessageDeltaStart(event ChatEvent) {
+templ MessageDeltaStart(eventId string) {
 	<div
 		class="chat chat-start mr-auto"
-		id={ event.Delta().ID }
+		id={ eventId }
 	>
 		<div class="chat-bubble chat-bubble-secondary min-w-25 text-left h-4">
 			<span class="loading loading-dots"></span>
