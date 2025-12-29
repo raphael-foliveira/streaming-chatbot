@@ -97,12 +97,29 @@ templ ChatForm(chatName string) {
 }
 
 templ ChatLink(chatSession domain.ChatSession) {
-	<div class="flex justify-between">
+	<div class="flex justify-between" x-data="{isDeleting: false}">
 		<a
 			href={ fmt.Sprintf("/chat/%s", chatSession.ID) }
 			class="link link-primary"
 		>{ chatSession.Name }</a>
-		<button hx-delete={ fmt.Sprintf("/chat/%s", chatSession.ID) } class="link link-warning">Delete</button>
+		<button x-on:click="isDeleting = true" class="link link-warning">Delete</button>
+		<div class="modal" x-bind:class="{'modal-open': isDeleting}">
+			<div class="modal-box">
+				<p class="py-4">Are you sure you want to delete this chat? This action is irreversible</p>
+				<div class="modal-action">
+					<button
+						hx-delete={ fmt.Sprintf("/chat/%s", chatSession.ID) }
+						class="btn btn-sm btn-error"
+					>Yes, delete</button>
+					<button
+						type="button"
+						class="btn btn-sm btn-neutral"
+						x-on:click="isDeleting = false"
+					>No, cancel</button>
+				</div>
+			</div>
+			<div class="modal-backdrop" x-on:click="isDeleting = false"></div>
+		</div>
 	</div>
 }
 
