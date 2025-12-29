@@ -32,9 +32,9 @@ func (h *Handler) Register(e *echo.Echo) {
 	g := e.Group("/chat")
 	g.GET("", h.Index)
 	g.POST("", h.Create)
-	g.GET("/:chat-name", h.ChatPage)
-	g.POST("/:chat-name/send-message", h.SendMessage)
-	g.GET("/:chat-name/sse", h.ListenForMessages)
+	g.GET("/:chat-id", h.ChatPage)
+	g.POST("/:chat-id/send-message", h.SendMessage)
+	g.GET("/:chat-id/sse", h.ListenForMessages)
 	g.DELETE("/:chat-id", h.DeleteChat)
 }
 
@@ -47,7 +47,7 @@ func (h *Handler) Index(c echo.Context) error {
 }
 
 func (h *Handler) Create(c echo.Context) error {
-	name := c.FormValue("chat-name")
+	name := c.FormValue("chat-id")
 	if name == "" {
 		return httpx.HxRedirect(c, "/chat")
 	}
@@ -61,25 +61,25 @@ func (h *Handler) Create(c echo.Context) error {
 }
 
 func (h *Handler) ChatPage(c echo.Context) error {
-	log.Println("getting chat page")
-	chatName := c.Param("chat-name")
+	chatId := c.Param("chat-id")
 	chatMessages, err := h.repository.GetMessages(c.Request().Context(), domain.GetMessagesParams{
-		ChatSessionId: chatName,
+		ChatSessionId: chatId,
 		Limit:         100,
 	})
 	if err != nil {
-		log.Println("error getting messages:")
+		return c.Redirect(http.StatusFound, "/chat")
+	}
+	chatName, err := h.repository.GetSessionName(c.Request().Context(), chatId)
+	if err != nil {
 		log.Println(err)
 		return c.Redirect(http.StatusFound, "/chat")
 	}
-
-	log.Println("rendering chat page for chat:", chatName)
 
 	return httpx.Render(c, ChatPage(chatName, chatMessages))
 }
 
 func (h *Handler) SendMessage(c echo.Context) error {
-	chatName := c.Param("chat-name")
+	chatName := c.Param("chat-id")
 
 	text := c.FormValue("chat-input")
 	if text == "" {
@@ -118,7 +118,7 @@ func (h *Handler) DeleteChat(c echo.Context) error {
 func (h *Handler) ListenForMessages(c echo.Context) error {
 	httpx.SetupSSE(c)
 
-	chatName := c.Param("chat-name")
+	chatName := c.Param("chat-id")
 	messagesChannel, unsub, err := h.pubsub.Subscribe(chatName)
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to chat: %w", err)

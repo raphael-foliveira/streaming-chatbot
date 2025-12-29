@@ -33,6 +33,7 @@ type ChatRepository interface {
 	SaveMessage(ctx context.Context, sessionId string, messages ...ChatMessage) error
 	CreateChat(ctx context.Context, sessionId string) (ChatSession, error)
 	ListSessions(ctx context.Context) ([]ChatSession, error)
+	GetSessionName(ctx context.Context, chatId string) (string, error)
 	DeleteSession(ctx context.Context, chatId string) error
 }
 
