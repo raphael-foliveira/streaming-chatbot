@@ -2,7 +2,6 @@ package httpx
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -27,19 +26,18 @@ func WriteEventStream(w http.ResponseWriter, event, data string) error {
 	return err
 }
 
-func WriteEventStreamTemplate(ctx context.Context, w http.ResponseWriter, event string, template templ.Component) error {
+func WriteEventStreamTemplate(c echo.Context, event string, template templ.Component) error {
 	var buf bytes.Buffer
-	if err := template.Render(ctx, &buf); err != nil {
+	if err := template.Render(c.Request().Context(), &buf); err != nil {
 		return err
 	}
 
-	return WriteEventStream(w, event, buf.String())
+	return WriteEventStream(c.Response(), event, buf.String())
 }
 
-func SetupSSE(c echo.Context) *echo.Response {
+func SetupSSE(c echo.Context) {
 	w := c.Response()
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
-	return w
 }

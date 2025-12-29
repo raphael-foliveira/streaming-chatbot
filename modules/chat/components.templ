@@ -44,6 +44,8 @@ templ ChatContainer(chatName string, chatMessages []domain.ChatMessage) {
 			sse-connect={ fmt.Sprintf("/chat/%s/sse", chatName) }
 			sse-swap="chat-messages"
 			hx-swap="beforeend"
+			x-init="$nextTick(() => $el.scrollTop = $el.scrollHeight)"
+			@htmx:after-swap="$el.scrollTop = $el.scrollHeight"
 		>
 			for _, msg := range chatMessages {
 				@Message(msg)

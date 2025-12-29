@@ -95,7 +95,7 @@ func (h *Handler) SendMessage(c echo.Context) error {
 }
 
 func (h *Handler) ListenForMessages(c echo.Context) error {
-	w := httpx.SetupSSE(c)
+	httpx.SetupSSE(c)
 
 	chatName := c.Param("chat-name")
 	messagesChannel, unsub, err := h.pubsub.Subscribe(chatName)
@@ -114,15 +114,14 @@ func (h *Handler) ListenForMessages(c echo.Context) error {
 			msgTemplate := getMessageTemplate(message)
 
 			if err := httpx.WriteEventStreamTemplate(
-				c.Request().Context(),
-				w,
+				c,
 				"chat-messages",
 				msgTemplate,
 			); err != nil {
 				return err
 			}
 
-			w.Flush()
+			c.Response().Flush()
 		}
 	}
 }
