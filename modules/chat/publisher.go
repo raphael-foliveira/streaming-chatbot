@@ -5,10 +5,10 @@ import (
 )
 
 type ChatEvent struct {
-	ChatName  string
-	Type      string
-	OfMessage domain.ChatMessage
-	OfDelta   ChatDelta
+	ChatSessionID string
+	Type          string
+	OfMessage     domain.ChatMessage
+	OfDelta       ChatDelta
 }
 
 func (c *ChatEvent) Delta() ChatDelta {

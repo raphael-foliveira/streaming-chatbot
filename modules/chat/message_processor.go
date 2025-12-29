@@ -37,7 +37,10 @@ func (p *MessageProcessor) ProcessUserMessages(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case newMessage := <-p.ch:
-			chatMessages, err := p.repository.GetMessages(ctx, newMessage.ChatName)
+			chatMessages, err := p.repository.GetMessages(ctx, domain.GetMessagesParams{
+				ChatSessionId: newMessage.ChatSessionID,
+				Limit:         30,
+			})
 			if err != nil {
 				log.Errorf("failed to get chat messages: %w", err)
 				continue
@@ -47,9 +50,9 @@ func (p *MessageProcessor) ProcessUserMessages(ctx context.Context) error {
 
 			builder := strings.Builder{}
 
-			if err := p.publisher.Publish(newMessage.ChatName, ChatEvent{
-				Type:     "delta_start",
-				ChatName: newMessage.ChatName,
+			if err := p.publisher.Publish(newMessage.ChatSessionID, ChatEvent{
+				Type:          "delta_start",
+				ChatSessionID: newMessage.ChatSessionID,
 				OfDelta: ChatDelta{
 					ID: deltaId,
 				},
@@ -63,9 +66,9 @@ func (p *MessageProcessor) ProcessUserMessages(ctx context.Context) error {
 				[]domain.LLMTool{NewTestTool()},
 				func(delta string) {
 					builder.WriteString(delta)
-					if err := p.publisher.Publish(newMessage.ChatName, ChatEvent{
-						Type:     "delta",
-						ChatName: newMessage.ChatName,
+					if err := p.publisher.Publish(newMessage.ChatSessionID, ChatEvent{
+						Type:          "delta",
+						ChatSessionID: newMessage.ChatSessionID,
 						OfDelta: ChatDelta{
 							ID:   deltaId,
 							Text: builder.String(),
@@ -79,7 +82,7 @@ func (p *MessageProcessor) ProcessUserMessages(ctx context.Context) error {
 				return fmt.Errorf("failed to stream response: %w", err)
 			}
 
-			if err := p.repository.SaveMessage(ctx, newMessage.ChatName, response...); err != nil {
+			if err := p.repository.SaveMessage(ctx, newMessage.ChatSessionID, response...); err != nil {
 				return fmt.Errorf("failed to save assistant message: %w", err)
 			}
 
