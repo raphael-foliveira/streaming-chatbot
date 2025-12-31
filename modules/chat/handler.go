@@ -67,7 +67,7 @@ func (h *Handler) SendMessage(c echo.Context) error {
 
 	text := c.FormValue("chat-input")
 	if text == "" {
-		return c.NoContent(http.StatusOK)
+		return c.NoContent(http.StatusNoContent)
 	}
 
 	if err := h.service.SendMessage(c.Request().Context(), chatName, text); err != nil {
@@ -87,7 +87,7 @@ func (h *Handler) DeleteChat(c echo.Context) error {
 
 func (h *Handler) ListenForMessages(c echo.Context) error {
 	httpx.SetupSSE(c)
-
+	ctx := c.Request().Context()
 	chatName := c.Param("chat-id")
 	messagesChannel, unsub, err := h.service.SubscribeToMessages(chatName)
 	if err != nil {
@@ -98,8 +98,8 @@ func (h *Handler) ListenForMessages(c echo.Context) error {
 	for {
 		select {
 
-		case <-c.Request().Context().Done():
-			return c.Request().Context().Err()
+		case <-ctx.Done():
+			return ctx.Err()
 
 		case message := <-messagesChannel:
 			if err := httpx.WriteEventStreamTemplate(
