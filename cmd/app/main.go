@@ -43,7 +43,8 @@ func main() {
 	enqueuer := chat.NewMessageEnqueuer(messagesChannel)
 	publisher := pubsub.NewChannel(map[string][]chan domain.ChatEvent{})
 
-	chatHandler := chat.NewHandler(enqueuer, publisher, chatRepository)
+	chatService := chat.NewService(chatRepository, publisher, enqueuer)
+	chatHandler := chat.NewHandler(chatService)
 	chatHandler.Register(e)
 
 	messagesProcessor := chat.NewMessageProcessor(

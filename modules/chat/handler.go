@@ -2,7 +2,6 @@ package chat
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -12,20 +11,12 @@ import (
 )
 
 type Handler struct {
-	enqueuer   domain.MessageEnqueuer
-	pubsub     domain.PubSub[domain.ChatEvent]
-	repository domain.ChatRepository
+	service domain.ChatService
 }
 
-func NewHandler(
-	enqueuer domain.MessageEnqueuer,
-	pubsub domain.PubSub[domain.ChatEvent],
-	repository domain.ChatRepository,
-) *Handler {
+func NewHandler(service domain.ChatService) *Handler {
 	return &Handler{
-		enqueuer:   enqueuer,
-		pubsub:     pubsub,
-		repository: repository,
+		service: service,
 	}
 }
 
@@ -40,7 +31,7 @@ func (h *Handler) Register(e *echo.Echo) {
 }
 
 func (h *Handler) Index(c echo.Context) error {
-	chatSessions, err := h.repository.ListSessions(c.Request().Context())
+	chatSessions, err := h.service.ListSessions(c.Request().Context())
 	if err != nil {
 		return fmt.Errorf("failed to list chat sessions: %w", err)
 	}
@@ -53,7 +44,7 @@ func (h *Handler) Create(c echo.Context) error {
 		return httpx.HxRedirect(c, "/chat")
 	}
 
-	newSession, err := h.repository.CreateChat(c.Request().Context(), name)
+	newSession, err := h.service.CreateChat(c.Request().Context(), name)
 	if err != nil {
 		return httpx.HxRedirect(c, "/chat")
 	}
@@ -63,16 +54,8 @@ func (h *Handler) Create(c echo.Context) error {
 
 func (h *Handler) ChatPage(c echo.Context) error {
 	chatId := c.Param("chat-id")
-	chatMessages, err := h.repository.GetMessages(c.Request().Context(), domain.GetMessagesParams{
-		ChatSessionId: chatId,
-		Limit:         100,
-	})
+	chatName, chatMessages, err := h.service.GetChatPageData(c.Request().Context(), chatId)
 	if err != nil {
-		return c.Redirect(http.StatusFound, "/chat")
-	}
-	chatName, err := h.repository.GetSessionName(c.Request().Context(), chatId)
-	if err != nil {
-		log.Println(err)
 		return c.Redirect(http.StatusFound, "/chat")
 	}
 
@@ -87,22 +70,8 @@ func (h *Handler) SendMessage(c echo.Context) error {
 		return c.NoContent(http.StatusOK)
 	}
 
-	newMessage := domain.ChatMessage{Role: "user", Content: text}
-
-	if err := h.repository.SaveMessage(c.Request().Context(), chatName, newMessage); err != nil {
-		return fmt.Errorf("failed to save user message: %w", err)
-	}
-
-	if err := h.pubsub.Publish(chatName, domain.ChatEvent{
-		Type:          "message",
-		ChatSessionID: chatName,
-		OfMessage:     newMessage,
-	}); err != nil {
-		return fmt.Errorf("failed to publish user message: %w", err)
-	}
-
-	if err := h.enqueuer.EnqueueUserMessage(c.Request().Context(), chatName, text); err != nil {
-		return fmt.Errorf("failed to enqueue user message: %w", err)
+	if err := h.service.SendMessage(c.Request().Context(), chatName, text); err != nil {
+		return fmt.Errorf("failed to send message: %w", err)
 	}
 
 	return httpx.Render(c, chatviews.ChatForm(chatName))
@@ -110,7 +79,7 @@ func (h *Handler) SendMessage(c echo.Context) error {
 
 func (h *Handler) DeleteChat(c echo.Context) error {
 	chatId := c.Param("chat-id")
-	if err := h.repository.DeleteSession(c.Request().Context(), chatId); err != nil {
+	if err := h.service.DeleteChat(c.Request().Context(), chatId); err != nil {
 		return fmt.Errorf("failed to delete chat session: %w", err)
 	}
 	return httpx.HxRedirect(c, "/chat")
@@ -120,7 +89,7 @@ func (h *Handler) ListenForMessages(c echo.Context) error {
 	httpx.SetupSSE(c)
 
 	chatName := c.Param("chat-id")
-	messagesChannel, unsub, err := h.pubsub.Subscribe(chatName)
+	messagesChannel, unsub, err := h.service.SubscribeToMessages(chatName)
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to chat: %w", err)
 	}

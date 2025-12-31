@@ -37,6 +37,15 @@ type ChatRepository interface {
 	DeleteSession(ctx context.Context, chatId string) error
 }
 
+type ChatService interface {
+	ListSessions(ctx context.Context) ([]ChatSession, error)
+	CreateChat(ctx context.Context, name string) (ChatSession, error)
+	GetChatPageData(ctx context.Context, chatId string) (string, []ChatMessage, error)
+	SendMessage(ctx context.Context, chatId, text string) error
+	DeleteChat(ctx context.Context, chatId string) error
+	SubscribeToMessages(chatId string) (chan ChatEvent, func(), error)
+}
+
 type GetMessagesParams struct {
 	ChatSessionId string
 	Before        time.Time
