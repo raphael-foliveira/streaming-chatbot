@@ -1,4 +1,4 @@
-package chat
+package chatviews
 
 import (
 	"fmt"
@@ -72,7 +72,7 @@ templ ChatForm(chatName string) {
 	</form>
 }
 
-templ getMessageTemplate(event ChatEvent) {
+templ GetMessageTemplate(event domain.ChatEvent) {
 	switch event.Type {
 		case "delta":
 			@MessageDelta(event.Delta().ID, event.Delta().Text)

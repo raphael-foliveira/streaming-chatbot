@@ -17,3 +17,29 @@ tasks:
     deps: []
     cmds:
       - air
+
+  migrate-up:
+    desc: Apply all pending database migrations
+    cmds:
+      - goose -dir ./migrations postgres "$DATABASE_URL" up
+
+  migrate-down:
+    desc: Roll back the last migration
+    cmds:
+      - goose -dir ./migrations postgres "$DATABASE_URL" down
+
+  migrate-status:
+    desc: Show migration status
+    cmds:
+      - goose -dir ./migrations postgres "$DATABASE_URL" status
+
+  migrate-reset:
+    desc: Roll back all migrations and re-apply them
+    cmds:
+      - goose -dir ./migrations postgres "$DATABASE_URL" reset
+      - goose -dir ./migrations postgres "$DATABASE_URL" up
+
+  migrate-create:
+    desc: Create a new migration file (usage: task migrate-create -- <name>)
+    cmds:
+      - goose -dir ./migrations create {{.CLI_ARGS}} sql

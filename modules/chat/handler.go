@@ -7,18 +7,19 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/raphael-foliveira/htmbot/domain"
+	chatviews "github.com/raphael-foliveira/htmbot/modules/chat/views"
 	"github.com/raphael-foliveira/htmbot/platform/httpx"
 )
 
 type Handler struct {
 	enqueuer   domain.MessageEnqueuer
-	pubsub     domain.PubSub[ChatEvent]
+	pubsub     domain.PubSub[domain.ChatEvent]
 	repository domain.ChatRepository
 }
 
 func NewHandler(
 	enqueuer domain.MessageEnqueuer,
-	pubsub domain.PubSub[ChatEvent],
+	pubsub domain.PubSub[domain.ChatEvent],
 	repository domain.ChatRepository,
 ) *Handler {
 	return &Handler{
@@ -43,11 +44,11 @@ func (h *Handler) Index(c echo.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to list chat sessions: %w", err)
 	}
-	return httpx.Render(c, Index(chatSessions, nil))
+	return httpx.Render(c, chatviews.Index(chatSessions, nil))
 }
 
 func (h *Handler) Create(c echo.Context) error {
-	name := c.FormValue("chat-id")
+	name := c.FormValue("chat-name")
 	if name == "" {
 		return httpx.HxRedirect(c, "/chat")
 	}
@@ -57,7 +58,7 @@ func (h *Handler) Create(c echo.Context) error {
 		return httpx.HxRedirect(c, "/chat")
 	}
 
-	return httpx.Render(c, ChatLink(newSession))
+	return httpx.Render(c, chatviews.ChatLink(newSession))
 }
 
 func (h *Handler) ChatPage(c echo.Context) error {
@@ -75,7 +76,7 @@ func (h *Handler) ChatPage(c echo.Context) error {
 		return c.Redirect(http.StatusFound, "/chat")
 	}
 
-	return httpx.Render(c, ChatPage(chatName, chatMessages))
+	return httpx.Render(c, chatviews.ChatPage(chatName, chatMessages))
 }
 
 func (h *Handler) SendMessage(c echo.Context) error {
@@ -92,7 +93,7 @@ func (h *Handler) SendMessage(c echo.Context) error {
 		return fmt.Errorf("failed to save user message: %w", err)
 	}
 
-	if err := h.pubsub.Publish(chatName, ChatEvent{
+	if err := h.pubsub.Publish(chatName, domain.ChatEvent{
 		Type:          "message",
 		ChatSessionID: chatName,
 		OfMessage:     newMessage,
@@ -104,7 +105,7 @@ func (h *Handler) SendMessage(c echo.Context) error {
 		return fmt.Errorf("failed to enqueue user message: %w", err)
 	}
 
-	return httpx.Render(c, ChatForm(chatName))
+	return httpx.Render(c, chatviews.ChatForm(chatName))
 }
 
 func (h *Handler) DeleteChat(c echo.Context) error {
@@ -135,7 +136,7 @@ func (h *Handler) ListenForMessages(c echo.Context) error {
 			if err := httpx.WriteEventStreamTemplate(
 				c,
 				"chat-messages",
-				getMessageTemplate(message),
+				chatviews.GetMessageTemplate(message),
 			); err != nil {
 				return err
 			}

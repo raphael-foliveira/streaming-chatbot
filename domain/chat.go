@@ -52,3 +52,23 @@ func (g *GetMessagesParams) ApplyDefaults() {
 		g.Limit = 20
 	}
 }
+
+type ChatEvent struct {
+	ChatSessionID string
+	Type          string
+	OfMessage     ChatMessage
+	OfDelta       ChatDelta
+}
+
+func (c *ChatEvent) Delta() ChatDelta {
+	return c.OfDelta
+}
+
+func (c *ChatEvent) Message() ChatMessage {
+	return c.OfMessage
+}
+
+type ChatDelta struct {
+	ID   string
+	Text string
+}

@@ -9,6 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/raphael-foliveira/htmbot/assets"
+	"github.com/raphael-foliveira/htmbot/domain"
 	"github.com/raphael-foliveira/htmbot/modules/chat"
 	"github.com/raphael-foliveira/htmbot/platform/agents"
 	"github.com/raphael-foliveira/htmbot/platform/pubsub"
@@ -38,9 +39,9 @@ func main() {
 	}
 
 	chatRepository := chat.NewPGXRepository(dbConn)
-	messagesChannel := make(chan chat.ChatEvent, 1000)
+	messagesChannel := make(chan domain.ChatEvent, 1000)
 	enqueuer := chat.NewMessageEnqueuer(messagesChannel)
-	publisher := pubsub.NewChannel(map[string][]chan chat.ChatEvent{})
+	publisher := pubsub.NewChannel(map[string][]chan domain.ChatEvent{})
 
 	chatHandler := chat.NewHandler(enqueuer, publisher, chatRepository)
 	chatHandler.Register(e)

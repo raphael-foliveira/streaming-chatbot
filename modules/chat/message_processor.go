@@ -11,15 +11,15 @@ import (
 )
 
 type MessageProcessor struct {
-	ch         chan ChatEvent
-	publisher  domain.PubSub[ChatEvent]
+	ch         chan domain.ChatEvent
+	publisher  domain.PubSub[domain.ChatEvent]
 	agent      domain.LLMAgent
 	repository domain.ChatRepository
 }
 
 func NewMessageProcessor(
-	ch chan ChatEvent,
-	publisher domain.PubSub[ChatEvent],
+	ch chan domain.ChatEvent,
+	publisher domain.PubSub[domain.ChatEvent],
 	agent domain.LLMAgent,
 	repository domain.ChatRepository,
 ) *MessageProcessor {
@@ -50,10 +50,10 @@ func (p *MessageProcessor) ProcessUserMessages(ctx context.Context) error {
 
 			builder := strings.Builder{}
 
-			if err := p.publisher.Publish(newMessage.ChatSessionID, ChatEvent{
+			if err := p.publisher.Publish(newMessage.ChatSessionID, domain.ChatEvent{
 				Type:          "delta_start",
 				ChatSessionID: newMessage.ChatSessionID,
-				OfDelta: ChatDelta{
+				OfDelta: domain.ChatDelta{
 					ID: deltaId,
 				},
 			}); err != nil {
@@ -66,10 +66,10 @@ func (p *MessageProcessor) ProcessUserMessages(ctx context.Context) error {
 				[]domain.LLMTool{NewTestTool()},
 				func(delta string) {
 					builder.WriteString(delta)
-					if err := p.publisher.Publish(newMessage.ChatSessionID, ChatEvent{
+					if err := p.publisher.Publish(newMessage.ChatSessionID, domain.ChatEvent{
 						Type:          "delta",
 						ChatSessionID: newMessage.ChatSessionID,
-						OfDelta: ChatDelta{
+						OfDelta: domain.ChatDelta{
 							ID:   deltaId,
 							Text: builder.String(),
 						},
