@@ -54,12 +54,12 @@ func (h *Handler) Create(c echo.Context) error {
 
 func (h *Handler) ChatPage(c echo.Context) error {
 	chatId := c.Param("chat-id")
-	chatName, chatMessages, err := h.service.GetChatPageData(c.Request().Context(), chatId)
+	chatPageData, err := h.service.GetChatPageData(c.Request().Context(), chatId)
 	if err != nil {
 		return c.Redirect(http.StatusFound, "/chat")
 	}
 
-	return httpx.Render(c, chatviews.ChatPage(chatName, chatMessages))
+	return httpx.Render(c, chatviews.ChatPage(chatPageData.Name, chatPageData.Messages))
 }
 
 func (h *Handler) SendMessage(c echo.Context) error {

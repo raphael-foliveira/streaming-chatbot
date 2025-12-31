@@ -35,21 +35,24 @@ func (s *Service) CreateChat(ctx context.Context, name string) (domain.ChatSessi
 	return s.repository.CreateChat(ctx, name)
 }
 
-func (s *Service) GetChatPageData(ctx context.Context, chatId string) (string, []domain.ChatMessage, error) {
+func (s *Service) GetChatPageData(ctx context.Context, chatId string) (domain.ChatPageData, error) {
 	chatMessages, err := s.repository.GetMessages(ctx, domain.GetMessagesParams{
 		ChatSessionId: chatId,
 		Limit:         100,
 	})
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to get messages: %w", err)
+		return domain.ChatPageData{}, fmt.Errorf("failed to get messages: %w", err)
 	}
 
 	chatName, err := s.repository.GetSessionName(ctx, chatId)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to get session name: %w", err)
+		return domain.ChatPageData{}, fmt.Errorf("failed to get session name: %w", err)
 	}
 
-	return chatName, chatMessages, nil
+	return domain.ChatPageData{
+		Name:     chatName,
+		Messages: chatMessages,
+	}, nil
 }
 
 func (s *Service) SendMessage(ctx context.Context, chatId, text string) error {
