@@ -40,6 +40,6 @@ tasks:
       - goose -dir ./migrations postgres "$DATABASE_URL" up
 
   migrate-create:
-    desc: Create a new migration file (usage: task migrate-create -- <name>)
+    desc: Create a new migration file (task migrate-create -- <name>)
     cmds:
       - goose -dir ./migrations create {{.CLI_ARGS}} sql

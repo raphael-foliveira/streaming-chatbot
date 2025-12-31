@@ -41,7 +41,7 @@ func (h *Handler) Index(c echo.Context) error {
 func (h *Handler) Create(c echo.Context) error {
 	name := c.FormValue("chat-name")
 	if name == "" {
-		return httpx.HxRedirect(c, "/chat")
+		return httpx.NoContent(c)
 	}
 
 	newSession, err := h.service.CreateChat(c.Request().Context(), name)

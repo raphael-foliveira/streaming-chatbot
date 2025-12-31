@@ -36,9 +36,9 @@ func (p *PGXRepository) CreateChat(ctx context.Context, chatName string) (domain
 }
 
 const getMessagesQuery = `
-SELECT id, role, content, name, args, call_id, result, chat_session_id
+SELECT id, role, content, name, args, call_id, result, chat_session_id, created_at
 FROM chat_messages
-WHERE chat_session_id = $1 
+WHERE chat_session_id = $1 AND content <> ''
 AND created_at < $2
 ORDER BY created_at DESC
 LIMIT $3;
@@ -98,9 +98,16 @@ func (p *PGXRepository) GetSessionName(ctx context.Context, chatId string) (stri
 }
 
 func (p *PGXRepository) SaveMessage(ctx context.Context, chatSessionId string, messages ...domain.ChatMessage) error {
+	if len(messages) == 0 {
+		return nil
+	}
+
 	rows := [][]any{}
 
 	for _, message := range messages {
+		if message.Content == "" {
+			continue
+		}
 		rows = append(rows, []any{
 			message.Role,
 			message.Content,
