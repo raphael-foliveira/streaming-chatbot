@@ -22,15 +22,17 @@ func NewHandler(service domain.ChatService) *Handler {
 
 func (h *Handler) Register(e *echo.Echo) {
 	g := e.Group("/chat")
-	g.GET("", h.Index)
-	g.POST("", h.Create)
-	g.GET("/:chat-id", h.ChatPage)
-	g.POST("/:chat-id/send-message", h.SendMessage)
-	g.GET("/:chat-id/sse", h.ListenForMessages)
-	g.DELETE("/:chat-id", h.DeleteChat)
+	g.GET("", h.index)
+	g.POST("", h.create)
+
+	cg := g.Group("/:chat-id")
+	cg.GET("", h.chatPage)
+	cg.POST("/send-message", h.sendMessage)
+	cg.GET("/sse", h.listenForMessages)
+	cg.DELETE("", h.deleteChat)
 }
 
-func (h *Handler) Index(c echo.Context) error {
+func (h *Handler) index(c echo.Context) error {
 	chatSessions, err := h.service.ListSessions(c.Request().Context())
 	if err != nil {
 		return fmt.Errorf("failed to list chat sessions: %w", err)
@@ -38,7 +40,7 @@ func (h *Handler) Index(c echo.Context) error {
 	return httpx.Render(c, chatviews.Index(chatSessions, nil))
 }
 
-func (h *Handler) Create(c echo.Context) error {
+func (h *Handler) create(c echo.Context) error {
 	name := c.FormValue("chat-name")
 	if name == "" {
 		return httpx.NoContent(c)
@@ -52,7 +54,7 @@ func (h *Handler) Create(c echo.Context) error {
 	return httpx.Render(c, chatviews.ChatLink(newSession))
 }
 
-func (h *Handler) ChatPage(c echo.Context) error {
+func (h *Handler) chatPage(c echo.Context) error {
 	chatId := c.Param("chat-id")
 	chatPageData, err := h.service.GetChatPageData(c.Request().Context(), chatId)
 	if err != nil {
@@ -62,7 +64,7 @@ func (h *Handler) ChatPage(c echo.Context) error {
 	return httpx.Render(c, chatviews.ChatPage(chatId, chatPageData.Messages))
 }
 
-func (h *Handler) SendMessage(c echo.Context) error {
+func (h *Handler) sendMessage(c echo.Context) error {
 	chatName := c.Param("chat-id")
 
 	text := c.FormValue("chat-input")
@@ -77,7 +79,7 @@ func (h *Handler) SendMessage(c echo.Context) error {
 	return httpx.Render(c, chatviews.ChatForm(chatName))
 }
 
-func (h *Handler) DeleteChat(c echo.Context) error {
+func (h *Handler) deleteChat(c echo.Context) error {
 	chatId := c.Param("chat-id")
 	if err := h.service.DeleteChat(c.Request().Context(), chatId); err != nil {
 		return fmt.Errorf("failed to delete chat session: %w", err)
@@ -85,7 +87,7 @@ func (h *Handler) DeleteChat(c echo.Context) error {
 	return httpx.HxRedirect(c, "/chat")
 }
 
-func (h *Handler) ListenForMessages(c echo.Context) error {
+func (h *Handler) listenForMessages(c echo.Context) error {
 	httpx.SetupSSE(c)
 	ctx := c.Request().Context()
 	chatName := c.Param("chat-id")

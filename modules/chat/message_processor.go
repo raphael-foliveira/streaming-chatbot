@@ -48,8 +48,6 @@ func (p *MessageProcessor) ProcessUserMessages(ctx context.Context) error {
 
 			deltaId := uuid.New().String()
 
-			builder := strings.Builder{}
-
 			if err := p.publisher.Publish(newMessage.ChatSessionID, domain.ChatEvent{
 				Type:          "delta_start",
 				ChatSessionID: newMessage.ChatSessionID,
@@ -60,6 +58,7 @@ func (p *MessageProcessor) ProcessUserMessages(ctx context.Context) error {
 				log.Errorf("failed to publish delta_start event: %w", err)
 			}
 
+			builder := strings.Builder{}
 			response, err := p.agent.StreamResponse(
 				ctx,
 				append(chatMessages, newMessage.OfMessage),
