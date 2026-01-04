@@ -1,0 +1,29 @@
+package searchviews
+
+import "github.com/raphael-foliveira/htmbot/platform/components"
+
+templ Index() {
+	@components.Page("Search") {
+		<div class="flex flex-col gap-4">
+			<h1 class="text-2xl font-bold text-center">Search</h1>
+			<label for="query" class="label">
+				<input
+					type="text"
+					name="query"
+					id="query"
+					class="input w-full"
+					hx-get="/search/results"
+					hx-target="#search-results"
+					hx-trigger="input changed delay:500ms"
+				/>
+			</label>
+			<div id="search-results" class="w-full text-center"></div>
+		</div>
+	}
+}
+
+templ SearchResults(results []string) {
+	for i, result := range results {
+		<p>{ i+1 }: { result }</p>
+	}
+}

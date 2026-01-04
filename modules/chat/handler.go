@@ -59,7 +59,7 @@ func (h *Handler) ChatPage(c echo.Context) error {
 		return c.Redirect(http.StatusFound, "/chat")
 	}
 
-	return httpx.Render(c, chatviews.ChatPage(chatPageData.Name, chatPageData.Messages))
+	return httpx.Render(c, chatviews.ChatPage(chatId, chatPageData.Messages))
 }
 
 func (h *Handler) SendMessage(c echo.Context) error {
